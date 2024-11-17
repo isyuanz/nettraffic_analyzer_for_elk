@@ -1,0 +1,58 @@
+version: "3"
+services:
+   elasticsearch:
+     restart: always
+     image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+     container_name: elasticsearch
+     hostname: elasticsearch
+     network_mode: host
+     privileged: true
+     ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+     environment:
+      - "ES_JAVA_OPTS=-Xms8192m -Xmx8192m"
+      - "http.host=0.0.0.0"
+      - "node.name=es_node01"
+      - "cluster.name=es_cluster"
+      - "discovery.type=single-node"
+     ports:
+      - "9200:9200"
+      - "9300:9300"
+     volumes:
+       - "/opt/config/es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+       - "/opt/config/es/plugins:/usr/share/elasticsearch/plugins:rw"
+       - "/opt/data/es/data:/usr/share/elasticsearch/data:rw"
+
+   kibana:
+    restart: always
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    network_mode: host
+    environment:
+      - XPACK_MONITORING_COLLECTION_ENABLED="true"
+    ports:
+      - "5601:5601"
+    volumes:
+      - "/opt/config/kibana/config:/usr/share/kibana/config"
+
+   logstash:
+    image: docker.elastic.co/logstash/logstash:8.5.0
+    container_name: logstash
+    network_mode: host
+    ports:
+      - "9600:9600"
+      - "2056:2056"
+      - "2055:2055"
+    restart: always
+    volumes:
+      - "/opt/config/logstash/config:/usr/share/logstash/config"
+      - "/opt/config/logstash/pipeline:/usr/share/logstash/pipeline"
+      - "/opt/data/logstash:/usr/share/logstash/data"
+      - "/opt/logs/logstash:/usr/share/logstash/logs"
+    command: >
+      bash -c "logstash-plugin install logstash-codec-netflow && \
+               logstash-plugin install logstash-codec-sflow && \
+               /usr/local/bin/docker-entrypoint"
+

@@ -1,0 +1,146 @@
+{
+  "@timestamp": [
+    "2024-11-16T05:52:44.868Z"
+  ],
+  "@version": [
+    "1"
+  ],
+  "@version.keyword": [
+    "1"
+  ],
+  "agent_ip": [
+    "113.56.125.82"
+  ],
+  "agent_ip.keyword": [
+    "113.56.125.82"
+  ],
+  "dot3StatsAlignmentErrors": [
+    "0"
+  ],
+  "dot3StatsAlignmentErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsCarrierSenseErrors": [
+    "0"
+  ],
+  "dot3StatsCarrierSenseErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsDeferredTransmissions": [
+    "0"
+  ],
+  "dot3StatsDeferredTransmissions.keyword": [
+    "0"
+  ],
+  "dot3StatsExcessiveCollisions": [
+    "0"
+  ],
+  "dot3StatsExcessiveCollisions.keyword": [
+    "0"
+  ],
+  "dot3StatsFCSErrors": [
+    "0"
+  ],
+  "dot3StatsFCSErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsFrameTooLongs": [
+    "0"
+  ],
+  "dot3StatsFrameTooLongs.keyword": [
+    "0"
+  ],
+  "dot3StatsInternalMacReceiveErrors": [
+    "0"
+  ],
+  "dot3StatsInternalMacReceiveErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsInternalMacTransmitErrors": [
+    "0"
+  ],
+  "dot3StatsInternalMacTransmitErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsLateCollisions": [
+    "0"
+  ],
+  "dot3StatsLateCollisions.keyword": [
+    "0"
+  ],
+  "dot3StatsMultipleCollisionFrames": [
+    "0"
+  ],
+  "dot3StatsMultipleCollisionFrames.keyword": [
+    "0"
+  ],
+  "dot3StatsSingleCollisionFrames": [
+    "0"
+  ],
+  "dot3StatsSingleCollisionFrames.keyword": [
+    "0"
+  ],
+  "dot3StatsSQETestErrors": [
+    "0"
+  ],
+  "dot3StatsSQETestErrors.keyword": [
+    "0"
+  ],
+  "dot3StatsSymbolErrors": [
+    "0"
+  ],
+  "dot3StatsSymbolErrors.keyword": [
+    "0"
+  ],
+  "host.ip": [
+    "113.56.125.82"
+  ],
+  "host.ip.keyword": [
+    "113.56.125.82"
+  ],
+  "ip_version": [
+    "1"
+  ],
+  "ip_version.keyword": [
+    "1"
+  ],
+  "sample_seq_number": [
+    "575"
+  ],
+  "sample_seq_number.keyword": [
+    "575"
+  ],
+  "sflow_type": [
+    "expanded_counter_sample"
+  ],
+  "sflow_type.keyword": [
+    "expanded_counter_sample"
+  ],
+  "source_id_index": [
+    "5"
+  ],
+  "source_id_index.keyword": [
+    "5"
+  ],
+  "source_id_type": [
+    "0"
+  ],
+  "source_id_type.keyword": [
+    "0"
+  ],
+  "sub_agent_id": [
+    "1"
+  ],
+  "sub_agent_id.keyword": [
+    "1"
+  ],
+  "uptime_in_ms": [
+    "220839299"
+  ],
+  "uptime_in_ms.keyword": [
+    "220839299"
+  ],
+  "_id": "2teHM5MBBJr59vQE53iv",
+  "_index": "sflow-2024.11.16",
+  "_score": null
+}
