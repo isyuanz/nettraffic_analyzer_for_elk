@@ -6,6 +6,7 @@ import logging
 from elasticsearch import Elasticsearch, helpers
 from datetime import datetime, timedelta, timezone
 import time
+from dateutil import parser
 from nettraffic_analyzer.resolver import Resolver
 
 
@@ -109,12 +110,12 @@ class Es:
                     # 更新最后一次检查的时间为最新文档的时间
                     last_times = [doc['_source'][timestamp_field] for doc in new_docs]
                     latest_time_str = max(last_times)
-                    last_checked_time = datetime.fromisoformat(latest_time_str.replace("Z", "+00:00"))
+                    last_checked_time = parser.isoparse(latest_time_str)
 
                 else:
                     logging.info("没有新文档。")
 
-                logging.info(f"更新完成，耗时：{round(time.time()-start, 2)}s")
+                logging.info(f"更新完成，耗时：{round(time.time() - start, 2)}s")
 
             except Exception as e:
                 logging.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")

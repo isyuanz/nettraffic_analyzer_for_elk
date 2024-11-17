@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch, helpers
 
 # 1. 配置Elasticsearch连接
-es = Elasticsearch(["http://122.189.33.130:9200"])
+es = Elasticsearch(["http://localhost:9200"])
 
 # 检查连接是否成功
 if not es.ping():

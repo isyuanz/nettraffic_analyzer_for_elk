@@ -7,20 +7,19 @@
 from elasticsearch import Elasticsearch
 
 # 创建 Elasticsearch 客户端
-es = Elasticsearch(["http://122.189.33.130:9200"])
+es = Elasticsearch(["http://localhost:9200"])
 
 try:
-    # 查询最新的文档
     response = es.search(
-        index="sflow*",  # 使用正确的通配符模式
+        index="sflow*",
         body={
-            "size": 1000,  # 获取最新的10个文档，可根据需要调整
+            "size": 100,  # 获取文档数量
             "query": {
                 "match_all": {}
             },
             "sort": [
                 {
-                    "@timestamp": {  # 确保这个字段存在于您的文档中
+                    "@timestamp": {
                         "order": "desc"  # 降序排列，获取最新的数据
                     }
                 }
