@@ -85,7 +85,9 @@ class Es:
         while True:
             try:
                 start = time.time()
-                index_name = f"sflow-{datetime.now().strftime('%Y.%m.%d')}"
+                # 使用 UTC 时间
+                index_name = f"sflow-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
+
                 # 获取新文档
                 new_docs = self.get_new_documents(
                     es_client=self.es,
