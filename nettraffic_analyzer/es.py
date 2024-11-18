@@ -12,7 +12,7 @@ from nettraffic_analyzer.resolver import Resolver
 
 class Es:
     def __init__(self):
-        self.logger = logging.getLogger()
+        self.logging = logging.getLogger()
         # 配置 Elasticsearch 客户端
         self.es = Elasticsearch(["http://localhost:9200"])
         if self.es.ping():

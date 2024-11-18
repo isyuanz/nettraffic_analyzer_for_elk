@@ -49,8 +49,9 @@ class Resolver:
         for doc in docs:
             source = doc['_source']
             agent_ip = source['agent_ip']
-            dst_ip = source['dst_ip']
-
+            dst_ip = source.get('dst_ip', None)
+            if dst_ip is None:
+                continue
             result1 = searcher.search(agent_ip)
             result2 = searcher.search(dst_ip)
             agent_ip_info = self.resolve_ip_region(result1)
