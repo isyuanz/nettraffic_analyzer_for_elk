@@ -9,23 +9,24 @@ import time
 from dateutil import parser
 from nettraffic_analyzer.resolver import Resolver
 
+logger = logging.getLogger(__name__)
+
 
 class Es:
     def __init__(self):
-        self.logging = logging.getLogger()
         # 配置 Elasticsearch 客户端
-        self.es = Elasticsearch(["http://localhost:9200"])
+        self.es = Elasticsearch(["http://122.189.33.130:9200"])
         if self.es.ping():
-            logging.info("成功连接到 Elasticsearch")
+            logger.info("成功连接到 Elasticsearch")
         else:
-            logging.error("无法连接到 Elasticsearch")
+            logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
 
     @ staticmethod
     def get_new_documents(es_client, index, timestamp_field, last_time):
         """
-        获取时间戳大于 last_time 的所有新文档
+        获取时间戳大于 last_time 的所有新记录
         """
         query = {
             "query": {
@@ -55,7 +56,7 @@ class Es:
 
     def prepare_bulk_update(self, docs):
         """
-        根据文档中的字段值，准备 Bulk API 更新操作
+        根据记录中的字段值，准备 Bulk API 更新操作
         """
         new_docs = self.resolver.rewrite_docs(docs)
         actions = []
@@ -88,7 +89,7 @@ class Es:
                 # 使用 UTC 时间
                 index_name = f"sflow-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
 
-                # 获取新文档
+                # 获取新记录
                 new_docs = self.get_new_documents(
                     es_client=self.es,
                     index=index_name,
@@ -97,7 +98,7 @@ class Es:
                 )
 
                 if new_docs:
-                    logging.info(f"找到 {len(new_docs)} 个新文档，正在处理...")
+                    logger.info(f"找到 {len(new_docs)} 个新记录，正在处理...")
 
                     # 准备更新操作
                     bulk_actions = self.prepare_bulk_update(new_docs)
@@ -105,21 +106,22 @@ class Es:
                     if bulk_actions:
                         # 执行批量更新
                         helpers.bulk(self.es, bulk_actions)
-                        logging.info(f"成功更新 {len(bulk_actions)} 个文档。")
+                        logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
                     else:
-                        logging.info("没有需要更新的文档。")
+                        logger.info("没有需要更新的记录。")
 
-                    # 更新最后一次检查的时间为最新文档的时间
+                    # 更新最后一次检查的时间为最新记录的时间
                     last_times = [doc['_source'][timestamp_field] for doc in new_docs]
                     latest_time_str = max(last_times)
                     last_checked_time = parser.isoparse(latest_time_str)
 
                 else:
-                    logging.info("没有新文档。")
+                    logger.info("没有新记录。")
 
-                logging.info(f"更新完成，耗时：{round(time.time() - start, 2)}s")
+                logger.info(f"更新完成，耗时：{round(time.time() - start, 2)}s")
 
             except Exception as e:
-                logging.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
+                logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
             time.sleep(check_interval)
+            

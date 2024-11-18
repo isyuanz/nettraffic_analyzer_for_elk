@@ -3,11 +3,11 @@
 # Website: https://www.yzgsa.com
 # Copyright (c) <yuanzigsa@gmail.com>
 from enum import Enum
-
+import logging
 from nettraffic_analyzer.xdbSearcher import XdbSearcher
 from nettraffic_analyzer.utils import setup_logger
 
-logging = setup_logger()
+logger = logging.getLogger(__name__)
 
 
 class Isp(Enum):
@@ -76,7 +76,7 @@ class Resolver:
             source['flow_isp_info'] = dst_ip_info
             doc['_source'] = source
             new_docs.append(doc)
-            # logging.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
+            # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
 
         # 关闭searcher
         searcher.close()
