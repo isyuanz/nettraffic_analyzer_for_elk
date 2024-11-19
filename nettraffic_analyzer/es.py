@@ -78,7 +78,7 @@ class Es:
 
     def run(self):
         timestamp_field = "@timestamp"
-        check_interval = 10
+        check_interval = 3
 
         # 初始化最后一次检查的时间
         last_checked_time = datetime.now(timezone.utc) - timedelta(seconds=check_interval)
