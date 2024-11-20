@@ -34,7 +34,12 @@ class Resolver:
             'isp': parts[-3] if len(parts) >= 3 else None,
         }
 
-    #
+    @staticmethod
+    def is_ipv4(ip):
+        ipv4_pattern = re.compile(
+            r'^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$')
+        return bool(ipv4_pattern.match(ip))
+
     def rewrite_docs(self, docs):
         """
         重写elasticsearch查询结果，添加IP归属地信息
@@ -50,7 +55,7 @@ class Resolver:
             source = doc['_source']
             agent_ip = source['agent_ip']
             dst_ip = source.get('dst_ip', None)
-            if dst_ip is None:
+            if dst_ip is None or not self.is_ipv4(dst_ip):
                 continue
             result1 = searcher.search(agent_ip)
             result2 = searcher.search(dst_ip)

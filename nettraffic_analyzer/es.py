@@ -39,7 +39,7 @@ class Es:
             "sort": [
                 {timestamp_field: "asc"}
             ],
-            "size": 10000  # 设置一个足够大的 size，根据你的需求调整
+            "size": 10000  # 设置一个足够大的 size
         }
 
         response = es_client.search(index=index, body=query, scroll='2m')
