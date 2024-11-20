@@ -4,6 +4,7 @@
 # Copyright (c) <yuanzigsa@gmail.com>
 from enum import Enum
 import logging
+import re
 from nettraffic_analyzer.xdbSearcher import XdbSearcher
 from nettraffic_analyzer.utils import setup_logger
 
