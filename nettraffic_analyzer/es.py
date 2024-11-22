@@ -101,7 +101,7 @@ class Es:
             time.sleep(10)
 
     def run(self):
-        sync = threading.Thread(target=get_elk_config, daemon=True)
+        sync = threading.Thread(target=self.get_elk_config, daemon=True)
         sync.start()
 
         timestamp_field = "@timestamp"
