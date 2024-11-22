@@ -15,7 +15,6 @@ from nettraffic_analyzer.utils import get_elk_config
 
 logger = logging.getLogger(__name__)
 
-config_data = []
 
 
 class Es:
@@ -60,11 +59,11 @@ class Es:
 
         return all_hits
 
-    def prepare_bulk_update(self, docs, config):
+    def prepare_bulk_update(self, docs):
         """
         根据记录中的字段值，准备 Bulk API 更新操作
         """
-        new_docs = self.resolver.rewrite_docs(docs, config)
+        new_docs = self.resolver.rewrite_docs(docs)
         actions = []
         for doc in new_docs:
             source = doc['_source']
@@ -84,26 +83,7 @@ class Es:
             actions.append(action)
         return actions
 
-    @staticmethod
-    def get_elk_config():
-        url = "http://120.26.111.213:8000/elk/config"
-        while True:
-            global config_data
-            try:
-                response = requests.get(url)
-                if response.status_code == 200:
-                    config_data = response.json()
-                    logger.info(f"从SkytonOPS获取到ELK配置: {config_data}")
-                else:
-                    logger.error(f"请求失败，状态码: {response.status_code}")
-            except requests.exceptions.RequestException as e:
-                logger.error(f"请求过程中发生错误: {e}")
-            time.sleep(10)
-
     def run(self):
-        sync = threading.Thread(target=self.get_elk_config, daemon=True)
-        sync.start()
-
         timestamp_field = "@timestamp"
         check_interval = 3
 
@@ -128,7 +108,7 @@ class Es:
                     logger.info(f"找到 {len(new_docs)} 个新记录，正在处理...")
 
                     # 准备更新操作
-                    bulk_actions = self.prepare_bulk_update(new_docs, config_data)
+                    bulk_actions = self.prepare_bulk_update(new_docs)
 
                     if bulk_actions:
                         # 执行批量更新

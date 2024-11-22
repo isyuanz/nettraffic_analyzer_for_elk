@@ -2,6 +2,7 @@
 # @Time    : 2024/11/17 15:31
 # Website: https://www.yzgsa.com
 # Copyright (c) <yuanzigsa@gmail.com>
+import json
 from enum import Enum
 import logging
 import re
@@ -42,9 +43,9 @@ class Resolver:
         return bool(ipv4_pattern.match(ip))
 
     @staticmethod
-    def get_node_and_customer(ip, config):
+    def get_node_and_customer(ip,data):
         try:
-            for item in config:
+            for item in data:
                 if ip == item['host_ip']:
                     return item['node'], item['costumer']
             else:
@@ -53,8 +54,16 @@ class Resolver:
             logger.error(f"Error in get_node_and_customer: {e}")
             return None, None
 
+    @staticmethod
+    def read_config_data():
+        try:
+            with open('res/config_data.json', 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error in read_config_data: {e}")
+            return []
 
-    def rewrite_docs(self, docs, config):
+    def rewrite_docs(self, docs):
         """
         重写elasticsearch查询结果，添加IP归属地信息
             1. 同运营商省内比例-同网省内
@@ -64,6 +73,7 @@ class Resolver:
             5. 去往电信的比例-异网(电信)
         """
         searcher = XdbSearcher(contentBuff=self.cb)
+        config_data = self.read_config_data()
         new_docs = []
         for doc in docs:
             source = doc['_source']
@@ -95,7 +105,7 @@ class Resolver:
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
-            node, customer = self.get_node_and_customer(host_isp, config)
+            node, customer = self.get_node_and_customer(host_isp, config_data)
             source['node'] = node
             source['customer'] = customer
             doc['_source'] = source
