@@ -58,7 +58,10 @@ class Resolver:
     def read_config_data():
         try:
             with open('res/config_data.json', 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                logger.info(f"当前配置：{data}")
+                return data
+
         except Exception as e:
             logger.error(f"Error in read_config_data: {e}")
             return []
