@@ -68,6 +68,7 @@ class Resolver:
         for doc in docs:
             source = doc['_source']
             agent_ip = source['agent_ip']
+            host_isp = source['host'].get('ip')
             dst_ip = source.get('dst_ip', None)
             if dst_ip is None or not self.is_ipv4(dst_ip):
                 continue
@@ -78,7 +79,6 @@ class Resolver:
 
             # 判断同网还是异网
             agent_isp = agent_ip_info.get('isp')
-            host_isp = agent_ip_info['host'].get('ip')
             dst_isp = dst_ip_info.get('isp')
             agent_province = agent_ip_info.get('province')
             dst_province = dst_ip_info.get('province')

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 config_data = []
 
+
 class Es:
     def __init__(self):
         # 配置 Elasticsearch 客户端
@@ -28,7 +29,7 @@ class Es:
             exit(1)
         self.resolver = Resolver()
 
-    @ staticmethod
+    @staticmethod
     def get_new_documents(es_client, index, timestamp_field, last_time):
         """
         获取时间戳大于 last_time 的所有新记录
@@ -85,7 +86,7 @@ class Es:
 
     @staticmethod
     def get_elk_config():
-        url = "http://localhost:8000/elk/config"
+        url = "http://120.26.111.213:8000/elk/config"
         while True:
             global config_data
             try:
@@ -150,4 +151,3 @@ class Es:
                 logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
             time.sleep(check_interval)
-            
