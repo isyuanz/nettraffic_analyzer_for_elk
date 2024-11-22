@@ -41,7 +41,20 @@ class Resolver:
             r'^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$')
         return bool(ipv4_pattern.match(ip))
 
-    def rewrite_docs(self, docs):
+    @staticmethod
+    def get_node_and_customer(ip, config):
+        try:
+            for item in config:
+                if ip == item['host_ip']:
+                    return item['node'], item['costumer']
+            else:
+                return None, None
+        except Exception as e:
+            logger.error(f"Error in get_node_and_customer: {e}")
+            return None, None
+
+
+    def rewrite_docs(self, docs, config):
         """
         重写elasticsearch查询结果，添加IP归属地信息
             1. 同运营商省内比例-同网省内
@@ -65,6 +78,7 @@ class Resolver:
 
             # 判断同网还是异网
             agent_isp = agent_ip_info.get('isp')
+            host_isp = agent_ip_info['host'].get('ip')
             dst_isp = dst_ip_info.get('isp')
             agent_province = agent_ip_info.get('province')
             dst_province = dst_ip_info.get('province')
@@ -80,6 +94,10 @@ class Resolver:
                 source['flow_isp_type'] = f'异网({dst_isp})'
 
             source['flow_isp_info'] = dst_ip_info
+            # 添加节点信息
+            node, customer = self.get_node_and_customer(host_isp, config)
+            source['node'] = node
+            source['customer'] = customer
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")

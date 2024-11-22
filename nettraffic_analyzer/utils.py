@@ -6,8 +6,11 @@
 import os
 import logging
 import socket
+import time
+
 import psutil
 import platform
+import requests
 from logging.handlers import TimedRotatingFileHandler
 from colorlog import ColoredFormatter
 
@@ -82,6 +85,21 @@ def get_ifname_by_ip(ip_address):
             if addr.family == socket.AF_INET and addr.address == ip_address:
                 return interface
     return None
+
+
+def get_elk_config():
+    url = "http://localhost:8000/elk/config"
+    while True:
+        global config_data
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                config_data = response.json()
+            else:
+                pass
+        except requests.exceptions.RequestException as e:
+            pass
+        time.sleep(10)
 
 
 banner = f"""启动NettrafficAnalyzer_for_ELK程序...\n
