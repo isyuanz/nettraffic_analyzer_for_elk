@@ -72,8 +72,10 @@ class Es:
                 "flow_isp_type": source['flow_isp_type'],
                 "flow_isp_info": source['flow_isp_info'],
                 "customer": source['customer'],
-                "node": source['node']
+                "node": source['node'],
+                "ipType": source['ipType']
             }
+            logger.info(new_field)
             action = {
                 "_op_type": "update",
                 "_index": doc['_index'],

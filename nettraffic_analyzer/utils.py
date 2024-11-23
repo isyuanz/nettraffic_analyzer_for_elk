@@ -7,7 +7,7 @@ import os
 import logging
 import socket
 import time
-
+import mysql.connector
 import psutil
 import platform
 import requests
@@ -100,6 +100,34 @@ def get_elk_config():
         except requests.exceptions.RequestException as e:
             pass
         time.sleep(10)
+
+
+def ipv6_search(ipv6_address):
+    connection = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='mspvAtxchJA2',
+        database='ipv6'
+    )
+    cursor = connection.cursor()
+    sql = """
+        SELECT * 
+        FROM ipv6_china_mainland
+        WHERE 
+            ip_dig_min_bin <= INET6_ATON(%s) 
+            AND ip_dig_max_bin >= INET6_ATON(%s)
+        ORDER BY ip_dig_min_bin DESC 
+        LIMIT 1;
+        """
+
+    cursor.execute(sql, (ipv6_address, ipv6_address))
+
+    result = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    return result
 
 
 banner = f"""启动NettrafficAnalyzer_for_ELK程序...\n

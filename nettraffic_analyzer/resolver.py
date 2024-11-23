@@ -7,7 +7,7 @@ from enum import Enum
 import logging
 import re
 from nettraffic_analyzer.xdbSearcher import XdbSearcher
-from nettraffic_analyzer.utils import setup_logger
+from nettraffic_analyzer.utils import setup_logger, ipv6_search
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,19 @@ class Resolver:
         self.cb = XdbSearcher.loadContentFromFile(dbfile=dbPath)
 
     @staticmethod
-    def resolve_ip_region(original_content):
+    def resolve_ip_region(original_content, ipv6=False):
         """
         解析xdb原始查询内容，返回省份、城市、区县、运营商信息
         """
+        if ipv6 and len(original_content) > 15:
+            return {
+                'province': original_content[6],
+                'city': original_content[15],
+                # 'district': original_content[13],
+                'isp': original_content[13],
+            }
+
+        # 默认解析ipv4查询结果
         parts = original_content.split('|')
         return {
             'province': parts[2] if len(parts) > 2 else None,
@@ -83,19 +92,30 @@ class Resolver:
             agent_ip = source['agent_ip']
             host_isp = source['host'].get('ip')
             dst_ip = source.get('dst_ip', None)
-            if dst_ip is None or not self.is_ipv4(dst_ip):
+            if dst_ip is None:
                 continue
-            result1 = searcher.search(agent_ip)
-            result2 = searcher.search(dst_ip)
-            agent_ip_info = self.resolve_ip_region(result1)
-            dst_ip_info = self.resolve_ip_region(result2)
 
+            agent_ip_info = {}
+            dst_ip_info = {}
+            if self.is_ipv4(dst_ip):
+                result1 = searcher.search(agent_ip)
+                result2 = searcher.search(dst_ip)
+                agent_ip_info = self.resolve_ip_region(result1)
+                dst_ip_info = self.resolve_ip_region(result2)
+                source['ipType'] = "ipv4"
+            else:
+                # ipv6
+                result1 = ipv6_search(agent_ip)
+                result2 = ipv6_search(dst_ip)
+                agent_ip_info = self.resolve_ip_region(result1, ipv6=True)
+                dst_ip_info = self.resolve_ip_region(result2, ipv6=True)
+                source['ipType'] = "ipv6"
             # 判断同网还是异网
-            agent_isp = agent_ip_info.get('isp')
-            dst_isp = dst_ip_info.get('isp')
-            agent_province = agent_ip_info.get('province')
-            dst_province = dst_ip_info.get('province')
-            if agent_isp and dst_isp and agent_isp == dst_isp:
+            agent_isp = agent_ip_info.get('isp', "未知")
+            dst_isp = dst_ip_info.get('isp', "未知")
+            agent_province = agent_ip_info.get('province', "未知")
+            dst_province = dst_ip_info.get('province', "未知")
+            if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
                 # 同网
                 if agent_province and dst_province and agent_province == dst_province:
                     source['flow_isp_type'] = '同网省内'
