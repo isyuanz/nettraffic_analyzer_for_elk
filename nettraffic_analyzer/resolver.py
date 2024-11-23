@@ -33,10 +33,10 @@ class Resolver:
 
         if ipv6 and len(original_content) > 15:
             return {
-                'province': original_content[6],
+                'province': original_content[13],
                 'city': original_content[15],
                 # 'district': original_content[13],
-                'isp': original_content[13],
+                'isp': original_content[6],
             }
 
         # 默认解析ipv4查询结果
