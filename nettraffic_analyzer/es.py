@@ -84,13 +84,13 @@ class Es:
 
     def run(self):
         timestamp_field = "@timestamp"
-        check_interval = 3
+        check_interval = 1
 
         # 初始化最后一次检查的时间
         last_checked_time = datetime.now(timezone.utc) - timedelta(seconds=check_interval)
 
         while True:
-            try:
+            # try:
                 start = time.time()
                 # 使用 UTC 时间
                 index_name = f"sflow-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
@@ -125,8 +125,8 @@ class Es:
                     logger.info("没有新记录。")
 
                 logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
+            #
+            # except Exception as e:
+            #     logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
-            except Exception as e:
-                logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
-
-            time.sleep(check_interval)
+                time.sleep(check_interval)

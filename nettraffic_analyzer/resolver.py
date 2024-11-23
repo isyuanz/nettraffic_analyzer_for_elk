@@ -28,6 +28,9 @@ class Resolver:
         """
         解析xdb原始查询内容，返回省份、城市、区县、运营商信息
         """
+        if not original_content:
+            return {}
+
         if ipv6 and len(original_content) > 15:
             return {
                 'province': original_content[6],
@@ -111,10 +114,10 @@ class Resolver:
                 dst_ip_info = self.resolve_ip_region(result2, ipv6=True)
                 source['ipType'] = "ipv6"
             # 判断同网还是异网
-            agent_isp = agent_ip_info.get('isp', "未知")
-            dst_isp = dst_ip_info.get('isp', "未知")
-            agent_province = agent_ip_info.get('province', "未知")
-            dst_province = dst_ip_info.get('province', "未知")
+            agent_isp = agent_ip_info.get('isp') if agent_ip_info.get('isp') is not None else "未知"
+            dst_isp = dst_ip_info.get('isp') if dst_ip_info.get('isp') is not None else "未知"
+            agent_province = agent_ip_info.get('province') if agent_ip_info.get('province') is not None else "未知"
+            dst_province = dst_ip_info.get('province') if dst_ip_info.get('province') is not None else "未知"
             if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
                 # 同网
                 if agent_province and dst_province and agent_province == dst_province:
@@ -123,8 +126,11 @@ class Resolver:
                     source['flow_isp_type'] = '同网跨省'
             else:
                 # 异网
-                dst_isp = dst_isp.replace('中国', '')
-                source['flow_isp_type'] = f'异网({dst_isp})'
+                if not dst_isp:
+                    source['flow_isp_type'] = '异网(未知)'
+                else:
+                    dst_isp = dst_isp.replace('中国', '')
+                    source['flow_isp_type'] = f'异网({dst_isp})'
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
