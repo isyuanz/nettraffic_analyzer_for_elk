@@ -15,8 +15,6 @@ from nettraffic_analyzer.utils import get_elk_config
 
 logger = logging.getLogger(__name__)
 
-
-
 class Es:
     def __init__(self):
         # 配置 Elasticsearch 客户端
@@ -75,7 +73,6 @@ class Es:
                 "node": source['node'],
                 "ipType": source['ipType']
             }
-            logger.info(new_field)
             action = {
                 "_op_type": "update",
                 "_index": doc['_index'],
@@ -107,7 +104,7 @@ class Es:
                 )
 
                 if new_docs:
-                    logger.info(f"找到 {len(new_docs)} 个新记录，正在处理...")
+                    logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
 
                     # 准备更新操作
                     bulk_actions = self.prepare_bulk_update(new_docs)
@@ -115,9 +112,9 @@ class Es:
                     if bulk_actions:
                         # 执行批量更新
                         helpers.bulk(self.es, bulk_actions)
-                        logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
+                        logger.warning(f"成功更新 {len(bulk_actions)} 个记录。")
                     else:
-                        logger.info("没有需要更新的记录。")
+                        logger.warning("没有需要更新的记录。")
 
                     # 更新最后一次检查的时间为最新记录的时间
                     last_times = [doc['_source'][timestamp_field] for doc in new_docs]
@@ -127,7 +124,7 @@ class Es:
                 else:
                     logger.info("没有新记录。")
 
-                logger.info(f"更新完成，耗时：{round(time.time() - start, 2)}s")
+                logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
 
             except Exception as e:
                 logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
