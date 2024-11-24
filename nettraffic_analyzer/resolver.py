@@ -55,16 +55,16 @@ class Resolver:
         return bool(ipv4_pattern.match(ip))
 
     @staticmethod
-    def get_node_and_customer(ip,data):
+    def get_node_and_customer(ip, intface, data):
         try:
             for item in data:
-                if ip == item['host_ip']:
+                if ip == item['host_ip'] and item['interface'] == intface:
                     return item['node'], item['costumer']
             else:
-                return None, None
+                return "未知",  "未知"
         except Exception as e:
             logger.error(f"Error in get_node_and_customer: {e}")
-            return None, None
+            return  "未知",  "未知"
 
     @staticmethod
     def read_config_data():
@@ -134,7 +134,8 @@ class Resolver:
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
-            node, customer = self.get_node_and_customer(host_isp, config_data)
+            intface = source.get('input_interface_value')
+            node, customer = self.get_node_and_customer(host_isp, intface, config_data)
             source['node'] = node
             source['customer'] = customer
             doc['_source'] = source
