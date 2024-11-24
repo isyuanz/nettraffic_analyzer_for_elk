@@ -3,20 +3,17 @@
 # Website: https://www.yzgsa.com
 # Copyright (c) <yuanzigsa@gmail.com>
 import logging
-import threading
-
-import requests
 from elasticsearch import Elasticsearch, helpers
 from datetime import datetime, timedelta, timezone
 import time
 from dateutil import parser
 from nettraffic_analyzer.resolver import Resolver
-from nettraffic_analyzer.utils import get_elk_config
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
 class Es:
-    def __init__(self):
+    def __init__(self, max_workers=5):
         # 配置 Elasticsearch 客户端
         self.es = Elasticsearch(["http://localhost:9200"])
         if self.es.ping():
@@ -25,6 +22,8 @@ class Es:
             logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
+        self.executor = ThreadPoolExecutor(max_workers=max_workers)
+
 
     @staticmethod
     def get_new_documents(es_client, index, timestamp_field, last_time):
@@ -82,6 +81,29 @@ class Es:
             actions.append(action)
         return actions
 
+    def update_docs(self, docs):
+        try:
+            start = time.time()
+
+            if docs:
+                logger.warning(f"找到 {len(docs)} 个新记录，正在处理...")
+
+                # 准备更新操作
+                bulk_actions = self.prepare_bulk_update(docs)
+
+                if bulk_actions:
+                    # 执行批量更新
+                    helpers.bulk(self.es, bulk_actions)
+                    logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
+                else:
+                    logger.warning("没有需要更新的记录。")
+            else:
+                logger.warning("没有新记录。")
+
+            logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
+        except Exception as e:
+            logger.error(f"update_docs 运行时发生错误: {e}")
+
     def run(self):
         timestamp_field = "@timestamp"
         check_interval = 1
@@ -90,8 +112,7 @@ class Es:
         last_checked_time = datetime.now(timezone.utc) - timedelta(seconds=check_interval)
 
         while True:
-            # try:
-                start = time.time()
+            try:
                 # 使用 UTC 时间
                 index_name = f"sflow-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
 
@@ -104,29 +125,17 @@ class Es:
                 )
 
                 if new_docs:
-                    logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
-
-                    # 准备更新操作
-                    bulk_actions = self.prepare_bulk_update(new_docs)
-
-                    if bulk_actions:
-                        # 执行批量更新
-                        helpers.bulk(self.es, bulk_actions)
-                        logger.warning(f"成功更新 {len(bulk_actions)} 个记录。")
-                    else:
-                        logger.warning("没有需要更新的记录。")
-
                     # 更新最后一次检查的时间为最新记录的时间
-                    last_times = [doc['_source'][timestamp_field] for doc in new_docs]
-                    latest_time_str = max(last_times)
+                    latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
                     last_checked_time = parser.isoparse(latest_time_str)
 
-                else:
-                    logger.info("没有新记录。")
+                    # 提交更新任务到线程池
+                    self.executor.submit(self.update_docs, new_docs)
 
-                logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
-            #
-            # except Exception as e:
-            #     logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
+            except Exception as e:
+                logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
-                time.sleep(check_interval)
+            time.sleep(check_interval)
+
+    def shutdown(self):
+        self.executor.shutdown(wait=True)
