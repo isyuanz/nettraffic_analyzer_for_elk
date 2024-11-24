@@ -173,8 +173,7 @@ class XdbSearcher(object):
 
 if __name__ == '__main__':
     ip_array = [
-        "1.2.3.4",
-        "192.168.1.1"
+        "122.189.33.130"
     ]
     # 1. 缓存
     dbPath = "../res/china.xdb"

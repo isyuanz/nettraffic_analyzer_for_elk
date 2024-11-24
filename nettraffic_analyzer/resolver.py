@@ -64,7 +64,7 @@ class Resolver:
                 return "未知",  "未知"
         except Exception as e:
             logger.error(f"Error in get_node_and_customer: {e}")
-            return  "未知",  "未知"
+            return "未知",  "未知"
 
     @staticmethod
     def read_config_data():
@@ -134,8 +134,8 @@ class Resolver:
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
-            intface = source.get('input_interface_value')
-            node, customer = self.get_node_and_customer(host_isp, intface, config_data)
+            interface = source.get('input_interface_value')
+            node, customer = self.get_node_and_customer(host_isp, interface, config_data)
             source['node'] = node
             source['customer'] = customer
             doc['_source'] = source
