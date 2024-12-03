@@ -12,8 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
+
 class Es:
-    def __init__(self, max_workers=5):
+    def __init__(self, max_workers=30):
         # 配置 Elasticsearch 客户端
         self.es = Elasticsearch(["http://localhost:9200"])
         if self.es.ping():
@@ -23,7 +24,6 @@ class Es:
             exit(1)
         self.resolver = Resolver()
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
-
 
     @staticmethod
     def get_new_documents(es_client, index, timestamp_field, last_time):
