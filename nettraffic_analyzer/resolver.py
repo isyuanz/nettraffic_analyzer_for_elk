@@ -138,7 +138,8 @@ class Resolver:
             node, customer, sw_interface = self.get_node_and_customer(host_isp, interface, config_data)
             source['node'] = node
             source['customer'] = customer
-            source['switch_intface'] = sw_interface
+            source['sw_interface'] = sw_interface
+            logger.warning(sw_interface)
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
