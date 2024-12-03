@@ -70,7 +70,8 @@ class Es:
                 "flow_isp_info": source['flow_isp_info'],
                 "customer": source['customer'],
                 "node": source['node'],
-                "ipType": source['ipType']
+                "ipType": source['ipType'],
+                "sw_interface": source['sw_interface']
             }
             action = {
                 "_op_type": "update",

@@ -139,7 +139,6 @@ class Resolver:
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
-            logger.warning(sw_interface)
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
