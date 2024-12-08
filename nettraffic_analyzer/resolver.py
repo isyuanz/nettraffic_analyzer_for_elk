@@ -93,14 +93,13 @@ class Resolver:
         for doc in docs:
             source = doc['_source']
             # agent_ip和host_ip差不多一回事
-            agent_ip = source['agent_ip']
             host_isp = source['host'].get('ip')
             dst_ip = source.get('dst_ip', None)
             if dst_ip is None:
                 continue
 
             # 查询agent_ip的归属地信息
-            result = searcher.search(agent_ip)
+            result = searcher.search(host_isp)
             agent_ip_info = self.resolve_ip_region(result)
 
             if self.is_ipv4(dst_ip):
