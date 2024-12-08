@@ -139,7 +139,7 @@ class Resolver:
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
-            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', "")}{dst_ip_info.get('city', "")}{dst_isp}"
+            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}{dst_isp}"
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
