@@ -2,6 +2,7 @@
 # @Time    : 2024/11/17 14:01
 # Website: https://www.yzgsa.com
 # Copyright (c) <yuanzigsa@gmail.com>
+import json
 import logging
 from elasticsearch import Elasticsearch, helpers
 from datetime import datetime, timedelta, timezone
@@ -23,7 +24,9 @@ class Es:
             logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
+        self.check_interval = 1
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
+        self.file_path = "res/last_checked_time.json"
 
     @staticmethod
     def get_new_documents(es_client, index, timestamp_field, last_time):
@@ -106,12 +109,23 @@ class Es:
         except Exception as e:
             logger.error(f"update_docs 运行时发生错误: {e}")
 
+    def save_last_checked_time(self, last_checked_time):
+        with open(self.file_path, "w") as f:
+            json.dump({"last_checked_time": last_checked_time.isoformat()}, f)
+
+    def load_last_checked_time(self):
+        try:
+            with open(self.file_path, "r") as f:
+                data = json.load(f)
+                return parser.isoparse(data["last_checked_time"])
+        except FileNotFoundError:
+            return datetime.now(timezone.utc) - timedelta(seconds=1)
+
     def run(self):
         timestamp_field = "@timestamp"
-        check_interval = 1
 
-        # 初始化最后一次检查的时间
-        last_checked_time = datetime.now(timezone.utc) - timedelta(seconds=check_interval)
+        # 从文件中加载最后检查时间
+        last_checked_time = self.load_last_checked_time()
 
         while True:
             try:
@@ -130,14 +144,15 @@ class Es:
                     # 更新最后一次检查的时间为最新记录的时间
                     latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
                     last_checked_time = parser.isoparse(latest_time_str)
-
+                    # 将最后检查时间写入文件
+                    self.save_last_checked_time(last_checked_time)
                     # 提交更新任务到线程池
                     self.executor.submit(self.update_docs, new_docs)
 
             except Exception as e:
                 logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
-            time.sleep(check_interval)
+            time.sleep(self.check_interval)
 
     def shutdown(self):
         self.executor.shutdown(wait=True)
