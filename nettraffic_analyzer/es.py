@@ -71,7 +71,8 @@ class Es:
                 "customer": source['customer'],
                 "node": source['node'],
                 "ipType": source['ipType'],
-                "sw_interface": source['sw_interface']
+                "sw_interface": source['sw_interface'],
+                "dst_ip_region": source['dst_ip_region']
             }
             action = {
                 "_op_type": "update",
