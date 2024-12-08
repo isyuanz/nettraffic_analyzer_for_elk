@@ -117,6 +117,7 @@ class Resolver:
             dst_isp = dst_ip_info.get('isp') if dst_ip_info.get('isp') is not None else "未知"
             agent_province = agent_ip_info.get('province') if agent_ip_info.get('province') is not None else "未知"
             dst_province = dst_ip_info.get('province') if dst_ip_info.get('province') is not None else "未知"
+            agent_isp = agent_isp.replace('中国', '')
             dst_isp = dst_isp.replace('中国', '')
             if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
                 # 同网
@@ -138,7 +139,7 @@ class Resolver:
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
-            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province')}{dst_ip_info.get('city')}{dst_isp}"
+            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', "")}{dst_ip_info.get('city', "")}{dst_isp}"
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
