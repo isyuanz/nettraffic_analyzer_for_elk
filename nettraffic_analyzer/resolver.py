@@ -92,26 +92,25 @@ class Resolver:
         new_docs = []
         for doc in docs:
             source = doc['_source']
+            # agent_ip和host_ip差不多一回事
             agent_ip = source['agent_ip']
             host_isp = source['host'].get('ip')
             dst_ip = source.get('dst_ip', None)
             if dst_ip is None:
                 continue
 
-            agent_ip_info = {}
-            dst_ip_info = {}
+            # 查询agent_ip的归属地信息
+            result = searcher.search(agent_ip)
+            agent_ip_info = self.resolve_ip_region(result)
+
             if self.is_ipv4(dst_ip):
-                result1 = searcher.search(agent_ip)
-                result2 = searcher.search(dst_ip)
-                agent_ip_info = self.resolve_ip_region(result1)
-                dst_ip_info = self.resolve_ip_region(result2)
+                result = searcher.search(dst_ip)
+                dst_ip_info = self.resolve_ip_region(result)
                 source['ipType'] = "ipv4"
             else:
                 # ipv6
-                result1 = ipv6_search(agent_ip)
-                result2 = ipv6_search(dst_ip)
-                agent_ip_info = self.resolve_ip_region(result1, ipv6=True)
-                dst_ip_info = self.resolve_ip_region(result2, ipv6=True)
+                result = ipv6_search(dst_ip)
+                dst_ip_info = self.resolve_ip_region(result, ipv6=True)
                 source['ipType'] = "ipv6"
             # 判断同网还是异网
             agent_isp = agent_ip_info.get('isp') if agent_ip_info.get('isp') is not None else "未知"
