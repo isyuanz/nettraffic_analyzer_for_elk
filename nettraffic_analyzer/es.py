@@ -11,17 +11,18 @@ from dateutil import parser
 from nettraffic_analyzer.resolver import Resolver
 from concurrent.futures import ThreadPoolExecutor
 
-logger = logging.getLogger(__name__)
+
 
 
 class Es:
     def __init__(self, max_workers=30):
+        self.logger = logging.getLogger()
         # 配置 Elasticsearch 客户端
         self.es = Elasticsearch(["http://localhost:9200"], basic_auth=("nettraffic_analyzer", "nettraffic_analyzer"))
         if self.es.ping():
-            logger.info("成功连接到 Elasticsearch")
+            self.logger.info("成功连接到 Elasticsearch")
         else:
-            logger.error("无法连接到 Elasticsearch")
+            self.logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
         self.check_interval = 1
@@ -91,7 +92,7 @@ class Es:
             start = time.time()
 
             if docs:
-                logger.warning(f"找到 {len(docs)} 个新记录，正在处理...")
+                self.logger.warning(f"找到 {len(docs)} 个新记录，正在处理...")
 
                 # 准备更新操作
                 bulk_actions = self.prepare_bulk_update(docs)
@@ -99,15 +100,15 @@ class Es:
                 if bulk_actions:
                     # 执行批量更新
                     helpers.bulk(self.es, bulk_actions)
-                    logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
+                    self.logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
                 else:
-                    logger.warning("没有需要更新的记录。")
+                    self.logger.warning("没有需要更新的记录。")
             else:
-                logger.warning("没有新记录。")
+                self.logger.warning("没有新记录。")
 
-            logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
+            self.logger.warning(f"更新完成，耗时：{round(time.time() - start, 2)}s")
         except Exception as e:
-            logger.error(f"update_docs 运行时发生错误: {e}")
+            self.logger.error(f"update_docs 运行时发生错误: {e}")
 
     def save_last_checked_time(self, last_checked_time):
         with open(self.file_path, "w") as f:
@@ -149,10 +150,10 @@ class Es:
                     # 提交更新任务到线程池
                     self.executor.submit(self.update_docs, new_docs)
                 else:
-                    logger.info("没有新的文档需要更新。")
+                    self.logger.info("没有新的文档需要更新。")
 
             except Exception as e:
-                logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
+                self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
             time.sleep(self.check_interval)
 
