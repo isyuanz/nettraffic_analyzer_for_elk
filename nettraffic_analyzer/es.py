@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Es:
     def __init__(self, max_workers=30):
         # 配置 Elasticsearch 客户端
-        self.es = Elasticsearch(["http://localhost:9200"])
+        self.es = Elasticsearch(["http://localhost:9200"], basic_auth=("elastic", "DQXuEVaChyUrD47BxIQl"))
         if self.es.ping():
             logger.info("成功连接到 Elasticsearch")
         else:
