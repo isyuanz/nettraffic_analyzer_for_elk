@@ -12,11 +12,9 @@ from nettraffic_analyzer.resolver import Resolver
 from concurrent.futures import ThreadPoolExecutor
 
 
-
-
 class Es:
     def __init__(self, max_workers=30):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         # 配置 Elasticsearch 客户端
         self.es = Elasticsearch(["http://localhost:9200"], basic_auth=("nettraffic_analyzer", "nettraffic_analyzer"))
         if self.es.ping():
