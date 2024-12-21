@@ -148,6 +148,8 @@ class Es:
                     self.save_last_checked_time(last_checked_time)
                     # 提交更新任务到线程池
                     self.executor.submit(self.update_docs, new_docs)
+                else:
+                    logger.info("没有新的文档需要更新。")
 
             except Exception as e:
                 logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
