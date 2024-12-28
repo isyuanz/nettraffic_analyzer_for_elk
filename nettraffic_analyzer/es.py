@@ -153,7 +153,7 @@ class Es:
             except Exception as e:
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
-            time.sleep(self.check_interval)
+            # time.sleep(self.check_interval)
 
     def shutdown(self):
         self.executor.shutdown(wait=True)
