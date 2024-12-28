@@ -23,7 +23,7 @@ class Es:
             self.logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
-        self.check_interval = 0.2
+        self.check_interval = 0.5
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.file_path = "res/last_checked_time.json"
 
