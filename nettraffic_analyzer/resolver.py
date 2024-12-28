@@ -58,7 +58,7 @@ class Resolver:
     def get_node_and_customer(ip, interface, data):
         try:
             for item in data:
-                if ip == item['host_ip'] and item['interface'] == interface:
+                if ip == item['agent_ip'] and item['interface'] == interface:
                     return item['node'], item['costumer'], item['switch']
             else:
                 return "未知",  "未知", "未知"
@@ -78,6 +78,14 @@ class Resolver:
             logger.error(f"Error in read_config_data: {e}")
             return []
 
+
+    @staticmethod
+    def _get_agent_ip(data, host_ip, interface):
+         for item in data:
+             if item['host_ip'] == host_ip and item['interface'] == interface:
+                 return item['agent_ip']
+
+
     def rewrite_docs(self, docs):
         """
         重写elasticsearch查询结果，添加IP归属地信息
@@ -92,14 +100,17 @@ class Resolver:
         new_docs = []
         for doc in docs:
             source = doc['_source']
-            # agent_ip和host_ip差不多一回事
-            host_isp = source['host'].get('ip')
-            dst_ip = source.get('dst_ip', None)
-            if dst_ip is None:
+            # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
+            host_ip = source['host'].get('ip')
+            dst_ip = source.get('dst_ip')
+            ifindex = source.get('ifindex')
+            agent_ip = next((item['agent_ip'] for item in config_data if
+                             item['host_ip'] == host_ip and item['interface'] == ifindex), None)
+            if dst_ip is None or host_ip is None or agent_ip is None:
                 continue
 
             # 查询agent_ip的归属地信息
-            result = searcher.search(host_isp)
+            result = searcher.search(agent_ip)
             agent_ip_info = self.resolve_ip_region(result)
 
             if self.is_ipv4(dst_ip):
@@ -134,7 +145,7 @@ class Resolver:
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
             interface = source.get('input_interface_value')
-            node, customer, sw_interface = self.get_node_and_customer(host_isp, interface, config_data)
+            node, customer, sw_interface = self.get_node_and_customer(agent_ip, interface, config_data)
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
