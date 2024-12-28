@@ -23,7 +23,7 @@ class Es:
             self.logger.error("无法连接到 Elasticsearch")
             exit(1)
         self.resolver = Resolver()
-        self.check_interval = 1
+        self.check_interval = 0.2
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.file_path = "res/last_checked_time.json"
 
@@ -153,7 +153,7 @@ class Es:
             except Exception as e:
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
-            # time.sleep(self.check_interval)
+            time.sleep(self.check_interval)
 
     def shutdown(self):
         self.executor.shutdown(wait=True)
