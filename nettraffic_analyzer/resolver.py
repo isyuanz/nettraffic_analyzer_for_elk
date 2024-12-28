@@ -103,7 +103,7 @@ class Resolver:
             # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
             host_ip = source['host'].get('ip')
             dst_ip = source.get('dst_ip')
-            ifindex = source.get('ifindex')
+            ifindex = source.get('input_interface_value')
             agent_ip = next((item['agent_ip'] for item in config_data if
                              item['host_ip'] == host_ip and item['interface'] == ifindex), None)
             if dst_ip is None or host_ip is None or agent_ip is None:
