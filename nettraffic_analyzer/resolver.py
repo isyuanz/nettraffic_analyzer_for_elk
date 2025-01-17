@@ -102,6 +102,7 @@ class Resolver:
             source = doc['_source']
             # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
             host_ip = source['host'].get('ip')
+            src_ip = source.get('src_ip')
             dst_ip = source.get('dst_ip')
             ifindex = source.get('input_interface_value')
             agent_ip = next((item['agent_ip'] for item in config_data if
@@ -116,11 +117,15 @@ class Resolver:
             if self.is_ipv4(dst_ip):
                 result = searcher.search(dst_ip)
                 dst_ip_info = self.resolve_ip_region(result)
+                result = searcher.search(src_ip)
+                src_ip_info = self.resolve_ip_region(result)
                 source['ipType'] = "ipv4"
             else:
                 # ipv6
                 result = ipv6_search(dst_ip)
                 dst_ip_info = self.resolve_ip_region(result, ipv6=True)
+                result = ipv6_search(src_ip)
+                src_ip_info = self.resolve_ip_region(result, ipv6=True)
                 source['ipType'] = "ipv6"
             # 判断同网还是异网
             agent_isp = agent_ip_info.get('isp') if agent_ip_info.get('isp') is not None else "未知"
@@ -144,11 +149,13 @@ class Resolver:
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
-            interface = source.get('input_interface_value')
-            node, customer, sw_interface = self.get_node_and_customer(agent_ip, interface, config_data)
+            node, customer, sw_interface = self.get_node_and_customer(agent_ip, ifindex, config_data)
+            if ifindex == 197 and agent_ip == '111.51.143.177':
+                print(f"agent_ip: {agent_ip}, ifindex: {ifindex}, node: {node}, customer: {customer}, sw_interface: {sw_interface}")
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
+            source['src_ip_region'] = f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}{src_ip}"
             source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}{dst_isp}"
             doc['_source'] = source
             new_docs.append(doc)

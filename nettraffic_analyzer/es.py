@@ -74,7 +74,8 @@ class Es:
                 "node": source['node'],
                 "ipType": source['ipType'],
                 "sw_interface": source['sw_interface'],
-                "dst_ip_region": source['dst_ip_region']
+                "dst_ip_region": source['dst_ip_region'],
+                "src_ip_region": source['src_ip_region']
             }
             action = {
                 "_op_type": "update",
