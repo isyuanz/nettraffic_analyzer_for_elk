@@ -155,8 +155,8 @@ class Resolver:
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
-            source['src_ip_region'] = f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}{src_ip}"
-            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}{dst_isp}"
+            source['src_ip_region'] = f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}"
+            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}"
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
