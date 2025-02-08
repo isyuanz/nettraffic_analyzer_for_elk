@@ -88,7 +88,7 @@ class Resolver:
     @staticmethod
     def rewrite_ipinfo(ip, ipinfo, isv4=True):
         if isv4:
-            ipinfo['isp'] = Isp.CHINA_UNICOM if ip and ip.startswith('122.190.51') else ipinfo['isp']
+            ipinfo['isp'] = "中国联通" if ip and ip.startswith('122.190.51') else ipinfo['isp']
 
         return ipinfo
 
