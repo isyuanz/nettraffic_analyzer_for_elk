@@ -41,10 +41,11 @@ class Resolver:
 
         # 默认解析ipv4查询结果
         parts = original_content.split('|')
+        city = parts[9] if len(parts) > 9 else None
         return {
             'province': parts[7] if len(parts) > 7 else None,
-            'city': parts[9] if len(parts) > 9 else None,
-            # 'district': parts[4] if len(parts) > 4 else None,
+            'city': city if city else "未知",
+            'district': parts[4] if len(parts) > 4 else None,
             'isp': parts[0] if len(parts) >= 1 else None,
         }
 
