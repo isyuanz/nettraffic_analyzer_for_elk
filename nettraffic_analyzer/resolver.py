@@ -79,13 +79,18 @@ class Resolver:
             logger.error(f"Error in read_config_data: {e}")
             return []
 
-
     @staticmethod
     def _get_agent_ip(data, host_ip, interface):
          for item in data:
              if item['host_ip'] == host_ip and item['interface'] == interface:
                  return item['agent_ip']
 
+    @staticmethod
+    def rewrite_ipinfo(ip, ipinfo, isv4=True):
+        if isv4:
+            ipinfo['isp'] = Isp.CHINA_UNICOM if ip and ip.startswith('122.190.51') else ipinfo['isp']
+
+        return ipinfo
 
     def rewrite_docs(self, docs):
         """
@@ -113,13 +118,13 @@ class Resolver:
 
             # 查询agent_ip的归属地信息
             result = searcher.search(agent_ip)
-            agent_ip_info = self.resolve_ip_region(result)
+            agent_ip_info = self.rewrite_ipinfo(agent_ip, self.resolve_ip_region(result))
 
             if self.is_ipv4(dst_ip):
                 result = searcher.search(dst_ip)
-                dst_ip_info = self.resolve_ip_region(result)
+                dst_ip_info = self.rewrite_ipinfo(dst_ip, self.resolve_ip_region(result))
                 result = searcher.search(src_ip)
-                src_ip_info = self.resolve_ip_region(result)
+                src_ip_info = self.rewrite_ipinfo(src_ip, self.resolve_ip_region(result))
                 source['ipType'] = "ipv4"
             else:
                 # ipv6
@@ -151,8 +156,6 @@ class Resolver:
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
             node, customer, sw_interface = self.get_node_and_customer(agent_ip, ifindex, config_data)
-            if ifindex == 197 and agent_ip == '111.51.143.177':
-                print(f"agent_ip: {agent_ip}, ifindex: {ifindex}, node: {node}, customer: {customer}, sw_interface: {sw_interface}")
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
