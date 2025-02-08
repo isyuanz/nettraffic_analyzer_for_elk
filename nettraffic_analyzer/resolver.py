@@ -42,10 +42,10 @@ class Resolver:
         # 默认解析ipv4查询结果
         parts = original_content.split('|')
         return {
-            'province': parts[2] if len(parts) > 2 else None,
-            'city': parts[3] if len(parts) > 3 else None,
-            'district': parts[4] if len(parts) > 4 else None,
-            'isp': parts[-3] if len(parts) >= 3 else None,
+            'province': parts[7] if len(parts) > 7 else None,
+            'city': parts[9] if len(parts) > 9 else None,
+            # 'district': parts[4] if len(parts) > 4 else None,
+            'isp': parts[0] if len(parts) >= 1 else None,
         }
 
     @staticmethod
