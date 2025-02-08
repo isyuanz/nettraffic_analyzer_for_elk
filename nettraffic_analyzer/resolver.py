@@ -28,26 +28,32 @@ class Resolver:
         """
         解析xdb原始查询内容，返回省份、城市、区县、运营商信息
         """
-        if not original_content:
-            return {}
-
+        # 解析ipv6查询结果
         if ipv6 and len(original_content) > 15:
+            province = original_content[13] if original_content[13] else "未知"
+            city = original_content[15] if original_content[15] else "未知"
+            isp = original_content[6] if original_content[6] else "未知"
             return {
-                'province': original_content[13],
-                'city': original_content[15],
-                # 'district': original_content[13],
-                'isp': original_content[6],
+                'province': province,
+                'city': city,
+                'isp': isp,
             }
-
-        # 默认解析ipv4查询结果
-        parts = original_content.split('|')
-        city = parts[9] if len(parts) > 9 else None
-        return {
-            'province': parts[7] if len(parts) > 7 else None,
-            'city': city if city else "未知",
-            'district': parts[4] if len(parts) > 4 else None,
-            'isp': parts[0] if len(parts) >= 1 else None,
-        }
+        # 解析ipv4查询结果
+        elif original_content and len(original_content.split('|')) > 9:
+            parts = original_content.split('|')
+            return {
+                'province': parts[7] if parts[7] else "未知",
+                'city': parts[9] if parts[9] else "未知",
+                'district': parts[4] if parts[4] else "未知",
+                'isp': parts[0] if parts[0] else "未知",
+            }
+        else:
+            return {
+                'province': '未知',
+                'city': '未知',
+                'district': '未知',
+                'isp': '未知',
+            }
 
     @staticmethod
     def is_ipv4(ip):
@@ -88,7 +94,7 @@ class Resolver:
     @staticmethod
     def rewrite_ipinfo(ip, ipinfo, isv4=True):
         if isv4:
-            ipinfo['isp'] = "中国联通" if ip and ip.startswith('122.190.51') else ipinfo['isp']
+            ipinfo['isp'] = "中国联通" if ip and ip.startswith('120.72.50') else ipinfo['isp']
 
         return ipinfo
 
@@ -134,10 +140,10 @@ class Resolver:
                 src_ip_info = self.resolve_ip_region(result, ipv6=True)
                 source['ipType'] = "ipv6"
             # 判断同网还是异网
-            agent_isp = agent_ip_info.get('isp') if agent_ip_info.get('isp') is not None else "未知"
-            dst_isp = dst_ip_info.get('isp') if dst_ip_info.get('isp') is not None else "未知"
-            agent_province = agent_ip_info.get('province') if agent_ip_info.get('province') is not None else "未知"
-            dst_province = dst_ip_info.get('province') if dst_ip_info.get('province') is not None else "未知"
+            agent_isp = agent_ip_info.get('isp')
+            dst_isp = dst_ip_info.get('isp')
+            agent_province = agent_ip_info.get('province')
+            dst_province = dst_ip_info.get('province')
             agent_isp = agent_isp.replace('中国', '')
             dst_isp = dst_isp.replace('中国', '')
             if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
