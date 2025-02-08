@@ -26,34 +26,42 @@ class Resolver:
     @staticmethod
     def resolve_ip_region(original_content, ipv6=False):
         """
-        解析xdb原始查询内容，返回省份、城市、区县、运营商信息
+        解析 xdb 原始查询内容，返回省份、城市、区县、运营商信息
+
+        :param original_content: 原始查询内容，IPv4 为字符串，IPv6 为列表
+        :param ipv6: 是否为 IPv6 查询
+        :return: 包含省份、城市、区县、运营商信息的字典
         """
-        # 解析ipv6查询结果
-        if ipv6 and len(original_content) > 15:
-            province = original_content[13] if original_content[13] else "未知"
-            city = original_content[15] if original_content[15] else "未知"
-            isp = original_content[6] if original_content[6] else "未知"
-            return {
-                'province': province,
-                'city': city,
-                'isp': isp,
-            }
-        # 解析ipv4查询结果
-        elif original_content and len(original_content.split('|')) > 9:
+        # 默认返回值
+        default_result = {
+            'province': '未知',
+            'city': '未知',
+            'district': '未知',
+            'isp': '未知',
+        }
+
+        # 处理 IPv6 查询结果
+        if ipv6:
+            if isinstance(original_content, (list, tuple)) and len(original_content) > 15:
+                return {
+                    'province': original_content[13] if original_content[13] else "未知",
+                    'city': original_content[15] if original_content[15] else "未知",
+                    # 'district': '未知',  # IPv6 结果中可能没有区县信息
+                    'isp': original_content[6] if original_content[6] else "未知",
+                }
+            return default_result
+
+        # 处理 IPv4 查询结果
+        if isinstance(original_content, str) and original_content.strip():
             parts = original_content.split('|')
-            return {
-                'province': parts[7] if parts[7] else "未知",
-                'city': parts[9] if parts[9] else "未知",
-                'district': parts[4] if parts[4] else "未知",
-                'isp': parts[0] if parts[0] else "未知",
-            }
-        else:
-            return {
-                'province': '未知',
-                'city': '未知',
-                'district': '未知',
-                'isp': '未知',
-            }
+            if len(parts) > 9:
+                return {
+                    'province': parts[7] if parts[7] else "未知",
+                    'city': parts[9] if parts[9] else "未知",
+                    'district': parts[4] if parts[4] else "未知",
+                    'isp': parts[0] if parts[0] else "未知",
+                }
+        return default_result
 
     @staticmethod
     def is_ipv4(ip):
