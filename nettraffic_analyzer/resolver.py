@@ -86,10 +86,10 @@ class Resolver:
                 item = flow_map[lookup_key]
                 flow_direction = "未知"
                 
-                if item['port_type'] == "up":
-                    flow_direction = "入站" if item['direction'] == "in" else "出站"
-                elif item['port_type'] == "down":
-                    flow_direction = "出站" if item['direction'] == "in" else "入站"
+                if item.get('port_type') == "up":
+                    flow_direction = "入站" if item.get('direction') == "in" else "出站"
+                elif item.get('port_type') == "down":
+                    flow_direction = "出站" if item.get('direction') == "in" else "入站"
                 
                 return item['node'], item['costumer'], item['switch'], flow_direction
                 
