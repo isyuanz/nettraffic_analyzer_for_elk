@@ -70,16 +70,34 @@ class Resolver:
         return bool(ipv4_pattern.match(ip))
 
     @staticmethod
-    def get_node_and_customer(ip, interface, data):
+    def get_flow_detail(ip, interface, data):
+        """
+        获取节点和客户信息以及确定是入站流量还是出站流量
+        :param ip: 源IP地址
+        :param interface: 源接口
+        :param data: 配置数据
+        :return: 节点、客户、端口名、流量方向
+        """
         try:
-            for item in data:
-                if ip == item['agent_ip'] and item['interface'] == interface:
-                    return item['node'], item['costumer'], item['switch']
-            else:
-                return "未知",  "未知", "未知"
+            lookup_key = f"{ip}_{interface}"
+            flow_map = {f"{item['agent_ip']}_{item['interface']}": item for item in data}
+            
+            if lookup_key in flow_map:
+                item = flow_map[lookup_key]
+                flow_direction = "未知"
+                
+                if item['port_type'] == "up":
+                    flow_direction = "入站" if item['direction'] == "in" else "出站"
+                elif item['port_type'] == "down":
+                    flow_direction = "出站" if item['direction'] == "in" else "入站"
+                
+                return item['node'], item['costumer'], item['switch'], flow_direction
+                
+            return "未知", "未知", "未知", "未知"
+            
         except Exception as e:
-            logger.error(f"Error in get_node_and_customer: {e}")
-            return "未知",  "未知", "未知"
+            logger.error(f"Error in get_flow_detail: {e}")
+            return "未知", "未知", "未知", "未知"
 
     @staticmethod
     def read_config_data():
@@ -169,12 +187,13 @@ class Resolver:
 
             source['flow_isp_info'] = dst_ip_info
             # 添加节点信息
-            node, customer, sw_interface = self.get_node_and_customer(agent_ip, ifindex, config_data)
+            node, customer, sw_interface, flow_direction = self.get_flow_detail(agent_ip, ifindex, config_data)
             source['node'] = node
             source['customer'] = customer
             source['sw_interface'] = sw_interface
             source['src_ip_region'] = f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}"
             source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}"
+            source['flow_direction'] = flow_direction
             doc['_source'] = source
             new_docs.append(doc)
             # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
