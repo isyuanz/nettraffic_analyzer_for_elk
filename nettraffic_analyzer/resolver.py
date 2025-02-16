@@ -159,6 +159,8 @@ class Resolver:
                         or (doc['_source'].get('output_interface_value') == interface)   # 默认出站
                     )
                 ]
+
+                logger.warning(f"匹配到的文档记录数量: {len(matching_docs)}")
                 
                 if not matching_docs:
                     continue
