@@ -148,7 +148,7 @@ class Resolver:
                 direction = config['direction']
                 host_ip = config['host_ip']
                 interface = config['interface']
-                
+                logger.warning(f"当前配置: host_ip={host_ip}, interface={interface}, direction={direction}")
                 # 筛选匹配当前配置的文档
                 matching_docs = [
                     doc for doc in docs 
@@ -156,7 +156,7 @@ class Resolver:
                     and (
                         (direction == "in" and doc['_source'].get('input_interface_value') == interface)
                         or (direction == "out" and doc['_source'].get('output_interface_value') == interface)
-                        or (doc['_source'].get('input_interface_value') == interface)   # 默认出站
+                        or (doc['_source'].get('input_interface_value') == interface)   # 默认取input的接口索引
                     )
                 ]
 
