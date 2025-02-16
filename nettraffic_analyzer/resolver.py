@@ -141,14 +141,12 @@ class Resolver:
         new_docs = []
         # IP信息缓存
         ip_info_cache = {}
-        
         try:
             # 按配置分组处理文档
             for config in config_data:
                 direction = config['direction']
                 host_ip = config['host_ip']
                 interface = config['interface']
-                logger.warning(f"当前配置: host_ip={host_ip}, interface={interface}, direction={direction}")
                 # 筛选匹配当前配置的文档
                 matching_docs = [
                     doc for doc in docs 
@@ -160,7 +158,6 @@ class Resolver:
                     )
                 ]
 
-                logger.warning(f"匹配到的文档记录数量: {len(matching_docs)}")
                 
                 if not matching_docs:
                     continue
@@ -221,5 +218,5 @@ class Resolver:
                     new_docs.append(doc)
         finally:
             searcher.close()
-            
+            logger.warning(f"更新文档记录数量: {len(new_docs)}")
         return new_docs
