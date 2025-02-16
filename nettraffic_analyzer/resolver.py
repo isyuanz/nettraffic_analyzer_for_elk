@@ -156,6 +156,7 @@ class Resolver:
                     and (
                         (direction == "in" and doc['_source'].get('input_interface_value') == interface)
                         or (direction == "out" and doc['_source'].get('output_interface_value') == interface)
+                        or (doc['_source'].get('output_interface_value') == interface)   # 默认出站
                     )
                 ]
                 
