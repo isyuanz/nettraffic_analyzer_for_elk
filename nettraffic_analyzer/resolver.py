@@ -206,6 +206,7 @@ class Resolver:
                     
                     # 更新source信息
                     source.update({
+                        'flow_isp_info_src': src_ip_info,
                         'flow_isp_info': dst_ip_info,
                         'node': config['node'],
                         'customer': config['costumer'],

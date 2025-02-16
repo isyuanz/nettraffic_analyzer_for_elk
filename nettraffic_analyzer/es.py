@@ -70,13 +70,14 @@ class Es:
             new_field = {
                 "flow_isp_type": source['flow_isp_type'],
                 "flow_isp_info": source['flow_isp_info'],
+                "flow_isp_info_src": source['flow_isp_info_src'],
                 "customer": source['customer'],
                 "node": source['node'],
                 "ipType": source['ipType'],
                 "sw_interface": source['sw_interface'],
                 "dst_ip_region": source['dst_ip_region'],
                 "src_ip_region": source['src_ip_region'],
-                "flow_direction": source['flow_direction']
+                "flow_direction": source['flow_direction'],
             }
             action = {
                 "_op_type": "update",
