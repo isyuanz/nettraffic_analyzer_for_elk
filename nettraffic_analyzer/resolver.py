@@ -70,7 +70,7 @@ class Resolver:
         return bool(ipv4_pattern.match(ip))
 
     @staticmethod
-    def get_flow_detail(ip, interface, data):
+    def get_flow_detail(ip, interface, agent_ip_index_map):
         """
         获取节点和客户信息以及确定是入站流量还是出站流量
         :param ip: 源IP地址
@@ -80,18 +80,16 @@ class Resolver:
         """
         try:
             lookup_key = f"{ip}_{interface}"
-            flow_map = {f"{item['agent_ip']}_{item['interface']}": item for item in data}
-            
-            if lookup_key in flow_map:
-                item = flow_map[lookup_key]
-                flow_direction = "未知"
+            if lookup_key in agent_ip_index_map:
+                item = agent_ip_index_map[lookup_key]
+                # flow_direction = "未知"
                 
-                if item.get('port_type') == "up":
-                    flow_direction = "入站" if item.get('direction') == "in" else "出站"
-                elif item.get('port_type') == "down":
-                    flow_direction = "出站" if item.get('direction') == "in" else "入站"
+                # if item.get('port_type') == "up":
+                #     flow_direction = "入站" if item.get('direction') == "in" else "出站"
+                # elif item.get('port_type') == "down":
+                #     flow_direction = "出站" if item.get('direction') == "in" else "入站"
                 
-                return item['node'], item['costumer'], item['switch'], flow_direction
+                return item['node'], item['costumer'], item['switch'], item['flow_direction']
                 
             return "未知", "未知", "未知", "未知"
             
@@ -104,11 +102,16 @@ class Resolver:
         try:
             with open('res/config_data.json', 'r') as f:
                 data = json.load(f)
-                logger.info(f"当前配置：{data}")
+                # logger.info(f"当前配置：{data}")
                 return data
+            # # 构建查找字典
+            # host_ip_index_map = {f"{item['host_ip']}_{item['interface']}": item for item in data}
+            # agent_ip_index_map = {f"{item['agent_ip']}_{item['interface']}": item for item in data}
+            # return host_ip_index_map, agent_ip_index_map
 
         except Exception as e:
             logger.error(f"Error in read_config_data: {e}")
+            # return {}, {}
             return []
 
     @staticmethod
@@ -136,68 +139,84 @@ class Resolver:
         searcher = XdbSearcher(contentBuff=self.cb)
         config_data = self.read_config_data()
         new_docs = []
-        for doc in docs:
-            source = doc['_source']
-            # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
-            host_ip = source['host'].get('ip')
-            src_ip = source.get('src_ip')
-            dst_ip = source.get('dst_ip')
-            ifindex = source.get('input_interface_value')
-            agent_ip = next((item['agent_ip'] for item in config_data if
-                             item['host_ip'] == host_ip and item['interface'] == ifindex), None)
-            if dst_ip is None or host_ip is None or agent_ip is None:
-                continue
-
-            # 查询agent_ip的归属地信息
-            result = searcher.search(agent_ip)
-            agent_ip_info = self.rewrite_ipinfo(agent_ip, self.resolve_ip_region(result))
-
-            if self.is_ipv4(dst_ip):
-                result = searcher.search(dst_ip)
-                dst_ip_info = self.rewrite_ipinfo(dst_ip, self.resolve_ip_region(result))
-                result = searcher.search(src_ip)
-                src_ip_info = self.rewrite_ipinfo(src_ip, self.resolve_ip_region(result))
-                source['ipType'] = "ipv4"
-            else:
-                # ipv6
-                result = ipv6_search(dst_ip)
-                dst_ip_info = self.resolve_ip_region(result, ipv6=True)
-                result = ipv6_search(src_ip)
-                src_ip_info = self.resolve_ip_region(result, ipv6=True)
-                source['ipType'] = "ipv6"
-            # 判断同网还是异网
-            agent_isp = agent_ip_info.get('isp')
-            dst_isp = dst_ip_info.get('isp')
-            agent_province = agent_ip_info.get('province')
-            dst_province = dst_ip_info.get('province')
-            agent_isp = agent_isp.replace('中国', '')
-            dst_isp = dst_isp.replace('中国', '')
-            if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
-                # 同网
-                if agent_province and dst_province and agent_province == dst_province:
-                    source['flow_isp_type'] = '同网省内'
-                else:
-                    source['flow_isp_type'] = '同网跨省'
-            else:
-                # 异网
-                if not dst_isp:
-                    source['flow_isp_type'] = '异网(未知)'
-                else:
-                    source['flow_isp_type'] = f'异网({dst_isp})'
-
-            source['flow_isp_info'] = dst_ip_info
-            # 添加节点信息
-            node, customer, sw_interface, flow_direction = self.get_flow_detail(agent_ip, ifindex, config_data)
-            source['node'] = node
-            source['customer'] = customer
-            source['sw_interface'] = sw_interface
-            source['src_ip_region'] = f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}"
-            source['dst_ip_region'] = f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}"
-            source['flow_direction'] = flow_direction
-            doc['_source'] = source
-            new_docs.append(doc)
-            # logger.info(f"IP:{ip.ljust(18)}归属：{province}-{city}-{isp}")
-
-        # 关闭searcher
-        searcher.close()
+        # IP信息缓存
+        ip_info_cache = {}
+        
+        try:
+            # 按配置分组处理文档
+            for config in config_data:
+                direction = config['direction']
+                host_ip = config['host_ip']
+                interface = config['interface']
+                
+                # 筛选匹配当前配置的文档
+                matching_docs = [
+                    doc for doc in docs 
+                    if doc['_source']['host'].get('ip') == host_ip 
+                    and (
+                        (direction == "in" and doc['_source'].get('input_interface_value') == interface)
+                        or (direction == "out" and doc['_source'].get('output_interface_value') == interface)
+                    )
+                ]
+                
+                if not matching_docs:
+                    continue
+                    
+                # 获取agent_ip信息（只需查询一次）
+                agent_ip = config['agent_ip']
+                if agent_ip not in ip_info_cache:
+                    result = searcher.search(agent_ip)
+                    ip_info_cache[agent_ip] = self.rewrite_ipinfo(agent_ip, self.resolve_ip_region(result))
+                agent_ip_info = ip_info_cache[agent_ip]
+                
+                for doc in matching_docs:
+                    source = doc['_source']
+                    src_ip = source.get('src_ip')
+                    dst_ip = source.get('dst_ip')
+                    
+                    if not all([dst_ip, host_ip, agent_ip]):
+                        continue
+                    
+                    # 使用缓存获取IP信息
+                    is_ipv4 = self.is_ipv4(dst_ip)
+                    source['ipType'] = "ipv4" if is_ipv4 else "ipv6"
+                    
+                    # 获取源IP和目标IP信息
+                    for ip in (src_ip, dst_ip):
+                        if ip not in ip_info_cache:
+                            if is_ipv4:
+                                result = searcher.search(ip)
+                                ip_info_cache[ip] = self.rewrite_ipinfo(ip, self.resolve_ip_region(result))
+                            else:
+                                result = ipv6_search(ip)
+                                ip_info_cache[ip] = self.resolve_ip_region(result, ipv6=True)
+                    
+                    src_ip_info = ip_info_cache[src_ip]
+                    dst_ip_info = ip_info_cache[dst_ip]
+                    
+                    # 处理ISP信息
+                    agent_isp = agent_ip_info.get('isp').replace('中国', '')
+                    dst_isp = dst_ip_info.get('isp').replace('中国', '')
+                    
+                    # 设置流量类型
+                    if agent_isp != "未知" and dst_isp != "未知" and agent_isp == dst_isp:
+                        source['flow_isp_type'] = '同网省内' if agent_ip_info.get('province') == dst_ip_info.get('province') else '同网跨省'
+                    else:
+                        source['flow_isp_type'] = '异网(未知)' if not dst_isp else f'异网({dst_isp})'
+                    
+                    # 更新source信息
+                    source.update({
+                        'flow_isp_info': dst_ip_info,
+                        'node': config['node'],
+                        'customer': config['costumer'],
+                        'sw_interface': config['switch'],
+                        'src_ip_region': f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}",
+                        'dst_ip_region': f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}",
+                        'flow_direction': config['flow_direction']
+                    })
+                    
+                    new_docs.append(doc)
+        finally:
+            searcher.close()
+            
         return new_docs
