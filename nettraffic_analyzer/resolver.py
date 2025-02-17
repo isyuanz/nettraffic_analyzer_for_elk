@@ -219,5 +219,4 @@ class Resolver:
                     new_docs.append(doc)
         finally:
             searcher.close()
-            logger.warning(f"更新文档记录数量: {len(new_docs)}")
         return new_docs

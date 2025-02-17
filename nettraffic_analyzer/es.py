@@ -101,7 +101,7 @@ class Es:
                 if bulk_actions:
                     # 执行批量更新
                     helpers.bulk(self.es, bulk_actions)
-                    self.logger.info(f"成功更新 {len(bulk_actions)} 个记录。")
+                    self.logger.warning(f"成功更新 {len(bulk_actions)} 个记录。")
                 else:
                     self.logger.warning("没有需要更新的记录。")
             else:
