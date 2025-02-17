@@ -158,6 +158,7 @@ class Resolver:
                     )
                 ]
 
+
                 
                 if not matching_docs:
                     continue
@@ -215,7 +216,11 @@ class Resolver:
                         'dst_ip_region': f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}",
                         'flow_direction': config['flow_direction']
                     })
-                    
+
+                    if host_ip == "58.19.25.1" and interface == "69":
+                        logger.warning(f"当前配置: {config}")
+                        logger.warning(f"匹配到的的文档: {matching_docs}")
+                        logger.warning(f"更新后的文档: {doc}")
                     new_docs.append(doc)
         finally:
             searcher.close()
