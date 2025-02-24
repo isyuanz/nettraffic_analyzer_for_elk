@@ -149,7 +149,12 @@ class Resolver:
                 ifindex = source.get('source_id_index')
                 config = agent_ip_index_config_map.get(f"{host_ip}_{ifindex}",{})
                 agent_ip = config.get('agent_ip')
+                if agent_ip == "36.103.200.1":
+                    logger.warning(f"当前配置: {config}")
                 if not all([src_ip, dst_ip, host_ip, agent_ip]):
+                    if agent_ip == "36.103.200.1":
+                        logger.warning(f"跳过36.103.200.1")
+                        logger.warning(f"当前配置: {src_ip} {dst_ip} {host_ip} {agent_ip}")
                     continue
 
                 if agent_ip not in ip_info_cache:
