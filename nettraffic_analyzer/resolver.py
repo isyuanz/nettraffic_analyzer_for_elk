@@ -105,7 +105,7 @@ class Resolver:
                 # logger.info(f"当前配置：{data}")
             # 构建查找字典
             # host_ip_index_map = {f"{item['host_ip']}_{item['interface']}": item for item in data}
-            agent_ip_index_map = {f"{item['agent_ip']}_{item['interface']}": item for item in data}
+            agent_ip_index_map = {f"{item['host_ip']}_{item['interface']}": item for item in data}
             return agent_ip_index_map
 
         except Exception as e:
@@ -149,14 +149,8 @@ class Resolver:
                 ifindex = source.get('source_id_index')
                 config = agent_ip_index_config_map.get(f"{host_ip}_{ifindex}",{})
                 agent_ip = config.get('agent_ip')
-                if agent_ip == "36.103.200.1":
-                    logger.warning(f"当前配置: {config}")
                 if not all([src_ip, dst_ip, host_ip, agent_ip]):
-                    if agent_ip == "36.103.200.1":
-                        logger.warning(f"跳过36.103.200.1")
-                        logger.warning(f"当前配置: {src_ip} {dst_ip} {host_ip} {agent_ip}")
                     continue
-
                 if agent_ip not in ip_info_cache:
                     result = searcher.search(agent_ip)
                     ip_info_cache[agent_ip] = self.rewrite_ipinfo(agent_ip, self.resolve_ip_region(result))
