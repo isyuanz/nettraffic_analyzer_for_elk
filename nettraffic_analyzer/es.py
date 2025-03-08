@@ -226,6 +226,10 @@ class Es_v2(Es):
                 "node": source['node'],
                 "customer": source['customer'],
                 "interface": source['interface'],
+                "local_ip_region": source['local_ip_region'],
+                "remote_ip_region": source['remote_ip_region'],
+                "local_ip_isp": source['local_ip_isp'],
+                "remote_ip_isp": source['remote_ip_isp'],
             }
             action = {
                 "_op_type": "update",
