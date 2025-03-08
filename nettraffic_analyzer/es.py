@@ -30,34 +30,54 @@ class Es:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.file_path = "res/last_checked_time.json"
 
-    @staticmethod
-    def get_new_documents(es_client, index, timestamp_field, last_time):
+    def get_new_documents(self, es_client, index, timestamp_field, last_time):
         """
-        获取时间戳大于 last_time 的所有新记录
+        使用 search_after 获取时间戳大于 last_time 的所有新记录
         """
-        query = {
-            "query": {
-                "range": {
-                    timestamp_field: {
-                        "gt": last_time.isoformat()
-                    }
-                }
-            },
-            "sort": [
-                {timestamp_field: "asc"}
-            ],
-            "size": 10000  # 设置一个足够大的 size
-        }
-        response = es_client.search(index=index, body=query, scroll='2m')
-        scroll_id = response['_scroll_id']
-        hits = response['hits']['hits']
-        all_hits = hits.copy()
+        try:
+            all_hits = []
+            search_after = None
+            batch_size = 10000
 
-        while len(hits) > 0:
-            response = es_client.scroll(scroll_id=scroll_id, scroll='2m')
-            hits = response['hits']['hits']
-            all_hits.extend(hits)
-        return all_hits
+            while True:
+                query = {
+                    "query": {
+                        "range": {
+                            timestamp_field: {
+                                "gt": last_time.isoformat()
+                            }
+                        }
+                    },
+                    "sort": [
+                        {timestamp_field: "asc"},
+                        "_doc"
+                    ],
+                    "size": batch_size
+                }
+
+                # 添加 search_after 参数
+                if search_after:
+                    query["search_after"] = search_after
+
+                response = es_client.search(index=index, body=query)
+                hits = response['hits']['hits']
+
+                if not hits:
+                    break
+
+                all_hits.extend(hits)
+                
+                # 获取最后一个文档的排序值作为下一次查询的 search_after
+                search_after = hits[-1]['sort']
+
+                # 可选：添加进度日志
+                self.logger.info(f"已获取 {len(all_hits)} 条记录")
+
+            return all_hits
+
+        except Exception as e:
+            self.logger.error(f"获取新文档时出错: {e}")
+            return []
 
     def prepare_bulk_update(self, docs):
         """
@@ -126,33 +146,53 @@ class Es:
 
     def run(self):
         timestamp_field = "@timestamp"
-
-        # 从文件中加载最后检查时间
         last_checked_time = self.load_last_checked_time()
+        retry_config = {
+            'max_retries': 3,
+            'initial_delay': 1,  # 初始延迟1秒
+            'max_delay': 30,     # 最大延迟30秒
+            'backoff_factor': 2  # 指数退避因子
+        }
 
         while True:
             try:
                 # 使用 UTC 时间
                 index_name = f"sflow-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
+                
+                # 使用指数退避的重试机制
+                for attempt in range(retry_config['max_retries']):
+                    try:
+                        # 获取新记录
+                        new_docs = self.get_new_documents(
+                            es_client=self.es,
+                            index=index_name,
+                            timestamp_field=timestamp_field,
+                            last_time=last_checked_time
+                        )
 
-                # 获取新记录
-                new_docs = self.get_new_documents(
-                    es_client=self.es,
-                    index=index_name,
-                    timestamp_field=timestamp_field,
-                    last_time=last_checked_time
-                )
+                        if new_docs:
+                            # 更新最后一次检查的时间为最新记录的时间
+                            latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
+                            last_checked_time = parser.isoparse(latest_time_str)
+                            # 将最后检查时间写入文件
+                            self.save_last_checked_time(last_checked_time)
+                            # 提交更新任务到线程池
+                            self.executor.submit(self.update_docs, new_docs)
+                        else:
+                            self.logger.info("没有新的文档需要更新")
 
-                if new_docs:
-                    # 更新最后一次检查的时间为最新记录的时间
-                    latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
-                    last_checked_time = parser.isoparse(latest_time_str)
-                    # 将最后检查时间写入文件
-                    self.save_last_checked_time(last_checked_time)
-                    # 提交更新任务到线程池
-                    self.executor.submit(self.update_docs, new_docs)
-                else:
-                    self.logger.info("没有新的文档需要更新。")
+                        break  # 成功执行后跳出重试循环
+
+                    except Exception as e:
+                        delay = min(
+                            retry_config['initial_delay'] * (retry_config['backoff_factor'] ** attempt),
+                            retry_config['max_delay']
+                        )
+                        if attempt < retry_config['max_retries'] - 1:
+                            self.logger.warning(f"第 {attempt + 1} 次尝试失败: {e}，{delay} 秒后重试")
+                            time.sleep(delay)
+                        else:
+                            raise
 
             except Exception as e:
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
@@ -196,35 +236,56 @@ class Es_v2(Es):
             actions.append(action)
         return actions
 
-
     def run(self):
         timestamp_field = "@timestamp"
-        # 从文件中加载最后检查时间
         last_checked_time = self.load_last_checked_time()
+        retry_config = {
+            'max_retries': 3,
+            'initial_delay': 1,  # 初始延迟1秒
+            'max_delay': 30,     # 最大延迟30秒
+            'backoff_factor': 2  # 指数退避因子
+        }
 
         while True:
             try:
                 # 使用 UTC 时间
                 index_name = f"ipbandwidth-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
-                # 获取新记录
-                new_docs = self.get_new_documents(
-                    es_client=self.es,
-                    index=index_name,
-                    timestamp_field=timestamp_field,
-                    last_time=last_checked_time
-                )
-                self.logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
+                
+                # 使用指数退避的重试机制
+                for attempt in range(retry_config['max_retries']):
+                    try:
+                        # 获取新记录
+                        new_docs = self.get_new_documents(
+                            es_client=self.es,
+                            index=index_name,
+                            timestamp_field=timestamp_field,
+                            last_time=last_checked_time
+                        )
 
-                if new_docs:
-                    # 更新最后一次检查的时间为最新记录的时间
-                    latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
-                    last_checked_time = parser.isoparse(latest_time_str)
-                    # 将最后检查时间写入文件
-                    self.save_last_checked_time(last_checked_time)
-                    # 提交更新任务到线程池
-                    self.executor.submit(self.update_docs, new_docs)
-                else:
-                    self.logger.warning("没有新的文档需要更新。")
+                        if new_docs:
+                            # 更新最后一次检查的时间为最新记录的时间
+                            latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
+                            last_checked_time = parser.isoparse(latest_time_str)
+                            # 将最后检查时间写入文件
+                            self.save_last_checked_time(last_checked_time)
+                            # 提交更新任务到线程池
+                            self.executor.submit(self.update_docs, new_docs)
+                            self.logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
+                        else:
+                            self.logger.info("没有新的文档需要更新")
+
+                        break  # 成功执行后跳出重试循环
+
+                    except Exception as e:
+                        delay = min(
+                            retry_config['initial_delay'] * (retry_config['backoff_factor'] ** attempt),
+                            retry_config['max_delay']
+                        )
+                        if attempt < retry_config['max_retries'] - 1:
+                            self.logger.warning(f"第 {attempt + 1} 次尝试失败: {e}，{delay} 秒后重试")
+                            time.sleep(delay)
+                        else:
+                            raise
 
             except Exception as e:
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
