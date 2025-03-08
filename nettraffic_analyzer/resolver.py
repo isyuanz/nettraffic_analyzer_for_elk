@@ -111,7 +111,19 @@ class Resolver:
         except Exception as e:
             logger.error(f"Error in read_config_data: {e}")
             return {}
+        
+    @staticmethod
+    def read_config_data_v2():
+        try:
+            with open('res/config_data.json', 'r') as f:
+                data = json.load(f)
+            host_ip_index_map = {f"{item['host_ip']}": item for item in data}
+            return host_ip_index_map
 
+        except Exception as e:
+            logger.error(f"Error in read_config_data: {e}")
+            return {}
+        
     @staticmethod
     def _get_agent_ip(data, host_ip, interface):
          for item in data:
@@ -193,6 +205,81 @@ class Resolver:
                     'src_ip_region': f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}",
                     'dst_ip_region': f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}",
                     'flow_direction': config['flow_direction']
+                })
+
+                # if host_ip == "58.19.25.1" and interface == "69":
+                #     logger.warning(f"当前配置: {config}")
+                #     logger.warning(f"匹配到的的文档: {matching_docs}")
+                #     logger.warning(f"更新后的文档: {doc}")
+                new_docs.append(doc)
+        except Exception as e:
+            logger.error(f"rewrite_docs出错: {e}")
+        finally:
+            searcher.close()
+        return new_docs
+
+    def rewrite_docs_v2(self, docs):
+        """
+        重写elasticsearch查询结果，添加IP归属地信息
+        """
+        # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
+        searcher = XdbSearcher(contentBuff=self.cb)
+        host_ip_index_config_map = self.read_config_data_v2()
+        new_docs = []
+        # IP信息缓存
+        ip_info_cache = {}
+        try:
+            for doc in docs:
+                source = doc['_source']
+                host_ip = source['host'].get('ip')
+                local_ip = source.get('local_ip')
+                remote_ip = source.get('remote_ip')
+                config = host_ip_index_config_map.get(f"{host_ip}",{})
+                if not all([local_ip, remote_ip, host_ip]):
+                    continue
+                if local_ip not in ip_info_cache:
+                    result = searcher.search(local_ip)
+                    ip_info_cache[local_ip] = self.resolve_ip_region(result)
+                local_ip_info = ip_info_cache[local_ip]
+                # 使用缓存获取IP信息
+                is_ipv4 = self.is_ipv4(local_ip)
+                # 获取源IP和目标IP信息
+                for ip in (local_ip, remote_ip):
+                    if ip not in ip_info_cache:
+                        if is_ipv4:
+                            result = searcher.search(ip)
+                            ip_info_cache[ip] = self.rewrite_ipinfo(ip, self.resolve_ip_region(result))
+                        # else:
+                        #     result = ipv6_search(ip)
+                        #     ip_info_cache[ip] = self.resolve_ip_region(result, ipv6=True)
+                
+                local_ip_info = ip_info_cache[local_ip]
+                remote_ip_info = ip_info_cache[remote_ip]
+                
+                # 处理ISP信息
+                local_isp = local_ip_info.get('isp').replace('中国', '')
+                remote_isp = remote_ip_info.get('isp').replace('中国', '')
+                
+                # 设置流量类型
+                # if local_isp != "未知" and remote_isp != "未知" and local_isp == remote_isp:
+                #     source['flow_isp_type'] = '同网省内' if local_ip_info.get('province') == remote_ip_info.get('province') else '同网跨省'
+                # else:
+                #     source['flow_isp_type'] = '异网(未知)' if not dst_isp else f'异网({dst_isp})'
+                
+                # 更新source信息
+
+                new_field = {
+                    "host_name": source['host_name'],
+                    "node": source['node'],
+                    "costumer": source['costumer'],
+                    "interface": source['interface'],
+                }
+                
+                source.update({
+                    'host_name': config['host_name'],
+                    'node': config['node'],
+                    'customer': config['costumer'],
+                    'interface': config['interface'],
                 })
 
                 # if host_ip == "58.19.25.1" and interface == "69":

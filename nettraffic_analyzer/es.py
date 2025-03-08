@@ -13,6 +13,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 class Es:
+    """
+    sflow 数据处理
+    """
     def __init__(self, max_workers=30):
         self.logger = logging.getLogger(__name__)
         # 配置 Elasticsearch 客户端
@@ -62,7 +65,7 @@ class Es:
         """
         根据记录中的字段值，准备 Bulk API 更新操作
         """
-        new_docs = self.resolver.rewrite_docs(docs)
+        new_docs = self.resolver.rewrite_docs_v2(docs)
         actions = []
         for doc in new_docs:
             source = doc['_source']
@@ -160,3 +163,73 @@ class Es:
 
     def shutdown(self):
         self.executor.shutdown(wait=True)
+
+
+class Es_v2(Es):
+    """
+    ipbw agent数据处理
+    """
+    def __init__(self, max_workers=30):
+        super().__init__(max_workers)
+        self.es = Elasticsearch(["http://localhost:9200"], basic_auth=("nettraffic_analyzer", "nettraffic_analyzer"))
+
+    def prepare_bulk_update(self, docs):
+        """
+        根据记录中的字段值，准备 Bulk API 更新操作
+        """
+        new_docs = self.resolver.rewrite_docs_v2(docs)
+        actions = []
+        for doc in new_docs:
+            source = doc['_source']
+            doc_id = doc['_id']
+            
+            new_field = {
+                "host_name": source['host_name'],
+                "node": source['node'],
+                "customer": source['customer'],
+                "interface": source['interface'],
+            }
+            action = {
+                "_op_type": "update",
+                "_index": doc['_index'],
+                "_id": doc_id,
+                "doc": new_field
+            }
+            actions.append(action)
+        return actions
+
+
+    def run(self):
+        timestamp_field = "@timestamp"
+
+        # 从文件中加载最后检查时间
+        last_checked_time = self.load_last_checked_time()
+
+        while True:
+            try:
+                # 使用 UTC 时间
+                index_name = f"ipbandwidth-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
+
+                # 获取新记录
+                new_docs = self.get_new_documents(
+                    es_client=self.es,
+                    index=index_name,
+                    timestamp_field=timestamp_field,
+                    last_time=last_checked_time
+                )
+
+                if new_docs:
+                    # 更新最后一次检查的时间为最新记录的时间
+                    latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
+                    last_checked_time = parser.isoparse(latest_time_str)
+                    # 将最后检查时间写入文件
+                    self.save_last_checked_time(last_checked_time)
+                    # 提交更新任务到线程池
+                    self.executor.submit(self.update_docs, new_docs)
+                else:
+                    self.logger.info("没有新的文档需要更新。")
+
+            except Exception as e:
+                self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
+
+            time.sleep(self.check_interval)
