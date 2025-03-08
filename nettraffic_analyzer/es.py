@@ -65,7 +65,7 @@ class Es:
         """
         根据记录中的字段值，准备 Bulk API 更新操作
         """
-        new_docs = self.resolver.rewrite_docs_v2(docs)
+        new_docs = self.resolver.rewrite_docs(docs)
         actions = []
         for doc in new_docs:
             source = doc['_source']
