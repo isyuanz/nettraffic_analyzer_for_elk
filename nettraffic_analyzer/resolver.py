@@ -272,6 +272,10 @@ class Resolver:
                     'node': config.get('node', '未知'),
                     'customer': config.get('costumer', '未知'),
                     'interface': config.get('interface', '未知'),
+                    'local_ip_region': f"{local_ip} {local_ip_info.get('province', '')}{local_ip_info.get('city', '')}",
+                    'remote_ip_region': f"{remote_ip} {remote_ip_info.get('province', '')}{remote_ip_info.get('city', '')}",
+                    'local_ip_isp': local_isp,
+                    'remote_ip_isp': remote_isp,
                 })
 
                 # if host_ip == "58.19.25.1" and interface == "69":
