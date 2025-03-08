@@ -230,6 +230,10 @@ class Es_v2(Es):
                 "remote_ip_region": source['remote_ip_region'],
                 "local_ip_isp": source['local_ip_isp'],
                 "remote_ip_isp": source['remote_ip_isp'],
+                "local_ip_region_full": source['local_ip_region_full'],
+                "remote_ip_region_full": source['remote_ip_region_full'],
+                "local_ip_info": source['local_ip_info'],
+                "remote_ip_info": source['remote_ip_info'],
             }
             action = {
                 "_op_type": "update",
