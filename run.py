@@ -22,5 +22,5 @@ if __name__ == "__main__":
     else:
         # 使用sflow解析
         es = Es()
-    logger.info(f"开始运行，版本: {es.__class__.__name__}")
+    logger.warning(f"开始运行，版本: {es.__class__.__name__}")
     es.run()
