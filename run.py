@@ -11,8 +11,11 @@ from nettraffic_analyzer.utils import *
 if __name__ == "__main__":
     logger = setup_logger()
     logger.info(banner)
-    with open("config/config.json", "r") as f:
-        config = json.load(f)
+    try:
+        with open("config/config.json", "r") as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        config = {}        
     if config.get("run_v2"):
         # 使用ipbw_agent解析
         es = Es_v2()

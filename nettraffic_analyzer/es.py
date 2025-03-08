@@ -128,7 +128,7 @@ class Es:
 
     def run(self):
         timestamp_field = "@timestamp"
-
+        
         # 从文件中加载最后检查时间
         last_checked_time = self.load_last_checked_time()
 
