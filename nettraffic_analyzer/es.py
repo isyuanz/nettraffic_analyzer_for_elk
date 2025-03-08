@@ -48,7 +48,6 @@ class Es:
             ],
             "size": 10000  # 设置一个足够大的 size
         }
-
         response = es_client.search(index=index, body=query, scroll='2m')
         scroll_id = response['_scroll_id']
         hits = response['hits']['hits']
@@ -58,7 +57,6 @@ class Es:
             response = es_client.scroll(scroll_id=scroll_id, scroll='2m')
             hits = response['hits']['hits']
             all_hits.extend(hits)
-
         return all_hits
 
     def prepare_bulk_update(self, docs):
@@ -128,7 +126,7 @@ class Es:
 
     def run(self):
         timestamp_field = "@timestamp"
-        
+
         # 从文件中加载最后检查时间
         last_checked_time = self.load_last_checked_time()
 
@@ -201,7 +199,6 @@ class Es_v2(Es):
 
     def run(self):
         timestamp_field = "@timestamp"
-
         # 从文件中加载最后检查时间
         last_checked_time = self.load_last_checked_time()
 
@@ -209,7 +206,6 @@ class Es_v2(Es):
             try:
                 # 使用 UTC 时间
                 index_name = f"ipbandwidth-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
-
                 # 获取新记录
                 new_docs = self.get_new_documents(
                     es_client=self.es,
@@ -217,6 +213,7 @@ class Es_v2(Es):
                     timestamp_field=timestamp_field,
                     last_time=last_checked_time
                 )
+                self.logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
 
                 if new_docs:
                     # 更新最后一次检查的时间为最新记录的时间
@@ -227,7 +224,7 @@ class Es_v2(Es):
                     # 提交更新任务到线程池
                     self.executor.submit(self.update_docs, new_docs)
                 else:
-                    self.logger.info("没有新的文档需要更新。")
+                    self.logger.warning("没有新的文档需要更新。")
 
             except Exception as e:
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
