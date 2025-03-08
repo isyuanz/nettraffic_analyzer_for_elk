@@ -267,19 +267,11 @@ class Resolver:
                 #     source['flow_isp_type'] = '异网(未知)' if not dst_isp else f'异网({dst_isp})'
                 
                 # 更新source信息
-
-                new_field = {
-                    "host_name": source['host_name'],
-                    "node": source['node'],
-                    "costumer": source['costumer'],
-                    "interface": source['interface'],
-                }
-                
                 source.update({
-                    'host_name': config['host_name'],
-                    'node': config['node'],
-                    'customer': config['costumer'],
-                    'interface': config['interface'],
+                    'host_name': config.get('host_name', '未知'),
+                    'node': config.get('node', '未知'),
+                    'customer': config.get('costumer', '未知'),
+                    'interface': config.get('interface', '未知'),
                 })
 
                 # if host_ip == "58.19.25.1" and interface == "69":
