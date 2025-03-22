@@ -232,8 +232,8 @@ class Resolver:
             for doc in docs:
                 source = doc['_source']
                 host_ip = source['host'].get('ip')
-                local_ip = source.get('local_ip')
-                remote_ip = source.get('remote_ip')
+                local_ip = source.get('in_dst.keyword')
+                remote_ip = source.get('in_src.keyword')
                 config = host_ip_index_config_map.get(f"{host_ip}",{})
                 if not all([local_ip, remote_ip, host_ip]):
                     continue
