@@ -232,8 +232,8 @@ class Resolver:
             for doc in docs:
                 source = doc['_source']
                 host_ip = source['host'].get('ip')
-                local_ip = source.get('in_dst.keyword')
-                remote_ip = source.get('in_src.keyword')
+                local_ip = source.get('in_dst')
+                remote_ip = source.get('in_src')
                 config = host_ip_index_config_map.get(f"{host_ip}",{})
                 if not all([local_ip, remote_ip, host_ip]):
                     logger.warning(f"本机IP: {host_ip} 目标IP: {local_ip} 源IP: {remote_ip} Doc: {doc} 配置: {config}")
