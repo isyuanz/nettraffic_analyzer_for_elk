@@ -1,5 +1,5 @@
 # @Author  : yuanzi
-# @Time    : 2024/11/17 15:31
+# @Time    : 2025/11/17 15:31
 # Website: https://www.yzgsa.com
 # Copyright (c) <yuanzigsa@gmail.com>
 import json
@@ -236,8 +236,7 @@ class Resolver:
                 remote_ip = source.get('in_src')
                 config = host_ip_index_config_map.get(f"{host_ip}",{})
                 if not all([local_ip, remote_ip, host_ip]):
-                    logger.warning(f"本机IP: {host_ip} 目标IP: {local_ip} 源IP: {remote_ip} Doc: {doc} 配置: {config}")
-                    # logger.warning(f"本机IP: {host_ip} 目标IP: {local_ip} 源IP: {remote_ip} 配置: {config}")
+                    # logger.warning(f"本机IP: {host_ip} 目标IP: {local_ip} 源IP: {remote_ip} Doc: {doc} 配置: {config}")
                     continue
                 if local_ip not in ip_info_cache:
                     result = searcher.search(local_ip)
