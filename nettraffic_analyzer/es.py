@@ -326,7 +326,6 @@ class Es_v3(Es):
                 "customer": source['customer'],
                 "interface": source['interface'],
                 "local_ip_region": source['local_ip_region'],
-                "remote_ip_region": source['remote_ip_region'],
                 "local_ip_info": source['local_ip_info'],
             }
             action = {
