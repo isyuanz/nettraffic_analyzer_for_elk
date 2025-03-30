@@ -4,7 +4,7 @@
 # Copyright (c) <yuanzigsa@gmail.com>
 
 import json
-from nettraffic_analyzer.es import Es, Es_v2
+from nettraffic_analyzer.es import Es, Es_v2, Es_v3
 from nettraffic_analyzer.utils import *
 
 
@@ -19,6 +19,9 @@ if __name__ == "__main__":
     if config.get("run_v2"):
         # 使用ipbw_agent解析
         es = Es_v2()
+    elif config.get("run_v3"):
+        # 使用ipbw_agent解析
+        es = Es_v3()
     else:
         # 使用sflow解析
         es = Es()

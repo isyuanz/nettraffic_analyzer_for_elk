@@ -299,3 +299,97 @@ class Es_v2(Es):
                 self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
 
             time.sleep(self.check_interval)
+
+
+
+class Es_v3(Es):
+    """
+    ipbw agent数据处理
+    """
+    def __init__(self, max_workers=30):
+        super().__init__(max_workers)
+        self.es = Elasticsearch(["http://localhost:9200"], basic_auth=("nettraffic_analyzer", "nettraffic_analyzer"))
+
+    def prepare_bulk_update(self, docs):
+        """
+        根据记录中的字段值，准备 Bulk API 更新操作
+        """
+        new_docs = self.resolver.rewrite_docs_v3(docs)
+        actions = []
+        for doc in new_docs:
+            source = doc['_source']
+            doc_id = doc['_id']
+            
+            new_field = {
+                "host_name": source['host_name'],
+                "node": source['node'],
+                "customer": source['customer'],
+                "interface": source['interface'],
+                "local_ip_region": source['local_ip_region'],
+                "remote_ip_region": source['remote_ip_region'],
+                "local_ip_info": source['local_ip_info'],
+            }
+            action = {
+                "_op_type": "update",
+                "_index": doc['_index'],
+                "_id": doc_id,
+                "doc": new_field
+            }
+            actions.append(action)
+        return actions
+
+    def run(self):
+        timestamp_field = "@timestamp"
+        last_checked_time = self.load_last_checked_time()
+        retry_config = {
+            'max_retries': 3,
+            'initial_delay': 1,  # 初始延迟1秒
+            'max_delay': 30,     # 最大延迟30秒
+            'backoff_factor': 2  # 指数退避因子
+        }
+
+        while True:
+            try:
+                # 使用 UTC 时间
+                index_name = f"ipbw-{datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
+                
+                # 使用指数退避的重试机制
+                for attempt in range(retry_config['max_retries']):
+                    try:
+                        # 获取新记录
+                        new_docs = self.get_new_documents(
+                            es_client=self.es,
+                            index=index_name,
+                            timestamp_field=timestamp_field,
+                            last_time=last_checked_time
+                        )
+
+                        if new_docs:
+                            # 更新最后一次检查的时间为最新记录的时间
+                            latest_time_str = max([doc['_source'][timestamp_field] for doc in new_docs])
+                            last_checked_time = parser.isoparse(latest_time_str)
+                            # 将最后检查时间写入文件
+                            self.save_last_checked_time(last_checked_time)
+                            # 提交更新任务到线程池
+                            self.executor.submit(self.update_docs, new_docs)
+                            self.logger.warning(f"找到 {len(new_docs)} 个新记录，正在处理...")
+                        else:
+                            self.logger.info("没有新的文档需要更新")
+
+                        break  # 成功执行后跳出重试循环
+
+                    except Exception as e:
+                        delay = min(
+                            retry_config['initial_delay'] * (retry_config['backoff_factor'] ** attempt),
+                            retry_config['max_delay']
+                        )
+                        if attempt < retry_config['max_retries'] - 1:
+                            self.logger.warning(f"第 {attempt + 1} 次尝试失败: {e}，{delay} 秒后重试")
+                            time.sleep(delay)
+                        else:
+                            raise
+
+            except Exception as e:
+                self.logger.error(f"NettrafficAnalyzer_for_ELK运行发生错误: {e}")
+
+            time.sleep(self.check_interval)
