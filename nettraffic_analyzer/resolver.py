@@ -327,7 +327,7 @@ class Resolver:
                 # 使用缓存获取IP信息
                 is_ipv4 = self.is_ipv4(local_ip)
                 # 获取源IP和目标IP信息
-                for ip in (local_ip):
+                for ip in (local_ip, host_ip):
                     if ip not in ip_info_cache:
                         if is_ipv4:
                             result = searcher.search(ip)

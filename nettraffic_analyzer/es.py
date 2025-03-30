@@ -339,7 +339,7 @@ class Es_v3(Es):
         return actions
 
     def run(self):
-        timestamp_field = "@timestamp"
+        timestamp_field = "event_timestamp"
         last_checked_time = self.load_last_checked_time()
         retry_config = {
             'max_retries': 3,
