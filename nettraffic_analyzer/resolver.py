@@ -22,6 +22,15 @@ class Resolver:
     def __init__(self):
         dbPath = "res/china.xdb"
         self.cb = XdbSearcher.loadContentFromFile(dbfile=dbPath)
+        try:
+            with open("config/config.json", "r") as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            config = {}      
+        self.db_host = config.get('db_host', 'localhost')
+        self.db_user = config.get('db_user', 'root')
+        self.db_password = config.get('db_password', 'mspvAtxchJA2')
+        self.db_database = config.get('db_database', 'ipv6')
 
     @staticmethod
     def resolve_ip_region(original_content, ipv6=False):

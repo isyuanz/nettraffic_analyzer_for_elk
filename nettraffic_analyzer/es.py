@@ -29,15 +29,7 @@ class Es:
         self.check_interval = 0.5
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.file_path = "res/last_checked_time.json"
-        try:
-            with open("config/config.json", "r") as f:
-                config = json.load(f)
-        except FileNotFoundError:
-            config = {}      
-        self.db_host = config.get('db_host', 'localhost')
-        self.db_user = config.get('db_user', 'root')
-        self.db_password = config.get('db_password', 'mspvAtxchJA2')
-        self.db_database = config.get('db_database', 'ipv6')
+
 
 
     def get_new_documents(self, es_client, index, timestamp_field, last_time):
