@@ -102,12 +102,12 @@ def get_elk_config():
         time.sleep(10)
 
 
-def ipv6_search(ipv6_address):
+def ipv6_search(ipv6_address, db_host, db_user, db_password, db_database):
     connection = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='mspvAtxchJA2',
-        database='ipv6'
+        host=db_host,
+        user=db_user,
+        password=db_password,
+        database=db_database
     )
     cursor = connection.cursor()
     sql = """

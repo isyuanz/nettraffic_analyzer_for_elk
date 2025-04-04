@@ -179,7 +179,7 @@ class Resolver:
                             result = searcher.search(ip)
                             ip_info_cache[ip] = self.rewrite_ipinfo(ip, self.resolve_ip_region(result))
                         else:
-                            result = ipv6_search(ip)
+                            result = ipv6_search(ip, self.db_host, self.db_user, self.db_password, self.db_database)
                             ip_info_cache[ip] = self.resolve_ip_region(result, ipv6=True)
                 
                 src_ip_info = ip_info_cache[src_ip]
