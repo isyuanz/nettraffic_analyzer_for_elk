@@ -10,7 +10,7 @@ from nettraffic_analyzer.utils import *
 
 if __name__ == "__main__":
     logger = setup_logger()
-    logger.info(banner)
+    logger.warning(banner)
     try:
         with open("config/config.json", "r") as f:
             config = json.load(f)
