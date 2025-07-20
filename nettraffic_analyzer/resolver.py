@@ -107,6 +107,18 @@ class Resolver:
             return "未知", "未知", "未知", "未知"
 
     @staticmethod
+    def read_sflow_cacti_data():
+        try:
+            with open('res/sflow_cacti_data.json', 'r') as f:
+                data = json.load(f)
+            sflow_cacti_data = {f"{item['local_graph_id']}": item for item in data}
+            return sflow_cacti_data
+
+        except Exception as e:
+            logger.error(f"Error in sflow_cacti_data: {e}")
+            return {}
+        
+    @staticmethod
     def read_config_data():
         try:
             with open('res/config_data.json', 'r') as f:
@@ -158,6 +170,7 @@ class Resolver:
         # 默认情况下agent_ip和host_ip是一样的，但在三线情况下可能不同，所以以agent_ip为准
         searcher = XdbSearcher(contentBuff=self.cb)
         agent_ip_index_config_map = self.read_config_data()
+        sflow_cacti_data_map = self.read_sflow_cacti_data()
         new_docs = []
         # IP信息缓存
         ip_info_cache = {}
@@ -203,6 +216,9 @@ class Resolver:
                     source['flow_isp_type'] = '同网省内' if agent_ip_info.get('province') == dst_ip_info.get('province') else '同网跨省'
                 else:
                     source['flow_isp_type'] = '异网(未知)' if not dst_isp else f'异网({dst_isp})'
+                    
+                # 获取cacti流量图信息
+                cacti_data = sflow_cacti_data_map.get(f"{config['relation_cacti_graph_id']}",{})
                 
                 # 更新source信息
                 source.update({
@@ -213,7 +229,10 @@ class Resolver:
                     'sw_interface': config['switch'],
                     'src_ip_region': f"{src_ip} {src_ip_info.get('province', '')}{src_ip_info.get('city', '')}",
                     'dst_ip_region': f"{dst_ip} {dst_ip_info.get('province', '')}{dst_ip_info.get('city', '')}",
-                    'flow_direction': config['flow_direction']
+                    'flow_direction': config['flow_direction'],
+                    'sum_traffic_in_max': cacti_data.get('traffic_in_max', 0),
+                    'sum_traffic_out_max': cacti_data.get('traffic_out_max', 0),
+                    
                 })
 
                 # if host_ip == "58.19.25.1" and interface == "69":

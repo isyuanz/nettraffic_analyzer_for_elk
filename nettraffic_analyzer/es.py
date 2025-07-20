@@ -101,6 +101,8 @@ class Es:
                 "dst_ip_region": source['dst_ip_region'],
                 "src_ip_region": source['src_ip_region'],
                 "flow_direction": source['flow_direction'],
+                "sum_traffic_in_max": source['sum_traffic_in_max'],
+                "sum_traffic_out_max": source['sum_traffic_out_max'],
             }
             action = {
                 "_op_type": "update",
