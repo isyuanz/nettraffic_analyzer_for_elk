@@ -111,7 +111,7 @@ class Resolver:
         try:
             with open('res/sflow_cacti_data.json', 'r') as f:
                 data = json.load(f)
-            sflow_cacti_data = {f"{item['local_graph_id']}": item for item in data}
+            sflow_cacti_data = {int(item['local_graph_id']): item for item in data}
             return sflow_cacti_data
 
         except Exception as e:
@@ -218,7 +218,8 @@ class Resolver:
                     source['flow_isp_type'] = '异网(未知)' if not dst_isp else f'异网({dst_isp})'
                     
                 # 获取cacti流量图信息
-                cacti_data = sflow_cacti_data_map.get(f"{config['relation_cacti_graph_id']}",{})
+                cacti_data = sflow_cacti_data_map.get(int(config['relation_cacti_graph_id']),{})
+                logger.info(f"cacti_data: {cacti_data}")
                 
                 # 更新source信息
                 source.update({
