@@ -6,6 +6,11 @@ import logging
 from datetime import timezone
 from logging.handlers import TimedRotatingFileHandler
 import os
+import requests
+
+
+dingtalk_webhook = "https://oapi.dingtalk.com/robot/send?access_token=6023ab04c155773b6889b01a0ca4ce691812bd359aaedefafd4f8644af35f111"
+
 
 # 创建logs目录（如果不存在）
 if not os.path.exists('logs'):
@@ -36,9 +41,6 @@ file_handler.setFormatter(file_formatter)
 # 添加处理器到logger
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
-
-# 全局变量：记录上次重启时间
-last_restart_time = None
 
 
 def connect_elasticsearch():
@@ -93,40 +95,33 @@ def check_index_updates(es, index_name):
         logger.error(f"检查索引更新时发生错误: {str(e)}")
         return False
 
-def restart_logstash_container():
-    """
-    重启logstash的docker容器
-    :return: 布尔值，表示是否成功重启
-    """
-    global last_restart_time
-    try:
-        logger.info("正在重启logstash容器...")
-        result = subprocess.run(['docker', 'restart', 'logstash'], 
-                              capture_output=True, 
-                              text=True)
-        if result.returncode == 0:
-            logger.info("logstash容器重启成功")
-            last_restart_time = datetime.datetime.now()
-            return True
-        else:
-            logger.error(f"重启logstash容器失败: {result.stderr}")
-            return False
-    except Exception as e:
-        logger.error(f"重启logstash容器时发生错误: {str(e)}")
-        return False
 
-def should_skip_check():
-    """
-    检查是否应该跳过检查（重启后30分钟内）
-    :return: 布尔值，表示是否应该跳过检查
-    """
-    global last_restart_time
-    if last_restart_time is None:
-        return False
-    
-    now = datetime.datetime.now()
-    time_since_restart = now - last_restart_time
-    return time_since_restart.total_seconds() < 1800  # 30分钟 = 1800秒
+def send_dingtalk_message(webhook, message):
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "msgtype": "markdown",
+        "markdown": {
+            "title": "ELK监控告警",
+            "text": message
+        }
+    }
+    response = requests.post(webhook, json=data, headers=headers)
+    if response.status_code == 200:
+        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 钉钉消息发送成功")
+    else:
+        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 钉钉消息发送失败，正在重试...")
+        # 重试发送钉钉消息
+        retry_count = 10  # 设置重试次数
+        for i in range(retry_count):
+            response = requests.post(webhook, json=data, headers=headers)
+            if response.status_code == 200:
+                print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 钉钉消息发送成功")
+                break
+            else:
+                print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 钉钉消息发送失败，正在重试...")
+        else:
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 重试发送钉钉消息失败")
+
 
 def main():
     """
@@ -138,18 +133,11 @@ def main():
         return
 
     while True:
-        # 检查是否应该跳过检查
-        if should_skip_check():
-            remaining_time = 1800 - (datetime.datetime.now() - last_restart_time).total_seconds()
-            logger.info(f"重启后冷却期，跳过检查。剩余时间: {int(remaining_time)}秒")
-            time.sleep(60)
-            continue
-            
         index_name = f"sflow-{datetime.datetime.now(timezone.utc).strftime('%Y.%m.%d')}"
         try:
             if not check_index_updates(es, index_name):
                 logger.warning(f"索引 {index_name} 在最近一分钟内没有更新")
-                restart_logstash_container()
+                send_dingtalk_message(dingtalk_webhook, f"【世捷通新ELK监控告警】索引 {index_name} 在最近一分钟内没有更新， 主机IP: 220.202.54.74")
             else:
                 logger.info(f"索引 {index_name} 正常更新中")
             
