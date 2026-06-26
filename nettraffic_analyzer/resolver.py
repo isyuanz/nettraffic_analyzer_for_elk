@@ -7,6 +7,7 @@ import io
 import os
 import logging
 import re
+import ipaddress
 from datetime import datetime, timezone, timedelta
 import ip2region.util as util
 import ip2region.searcher as xdb
@@ -258,6 +259,58 @@ class Resolver:
         except Exception as e:
             logger.error(f"Error in read_config_data: {e}")
             return {}
+
+    @staticmethod
+    def read_customer_cidr_data():
+        """读取 OPS 下发的 customer_cidr.json，构建 IPv4/IPv6 最长前缀匹配树。
+
+        文件不存在或为空时返回空列表。
+
+        Returns:
+            list[(ip_network, config_dict)] 按 prefixlen 倒序排列，便于 _lookup_cidr 线性扫描。
+            config_dict 包含 customer / node / egress_ip。
+        """
+        try:
+            with open('res/customer_cidr.json', 'r') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            logger.warning(f'customer_cidr.json 未加载: {exc}')
+            return []
+
+        entries = []
+        for item in data:
+            cidr = item.get('cidr')
+            if not cidr:
+                continue
+            try:
+                net = ipaddress.ip_network(cidr, strict=False)
+            except (ValueError, TypeError):
+                logger.warning(f'非法 CIDR 跳过: {cidr}')
+                continue
+            entries.append((net, {
+                'customer': item.get('customer'),
+                'node': item.get('node'),
+                'egress_ip': item.get('egress_ip'),
+            }))
+        # 按前缀长度倒序：更具体的网段优先匹配
+        entries.sort(key=lambda x: x[0].prefixlen, reverse=True)
+        return entries
+
+    @staticmethod
+    def _lookup_cidr(ip_str, cidr_entries):
+        """对单个 IP 在 CIDR 条目列表中做最长前缀匹配（已按 prefixlen 倒序）。"""
+        if not ip_str or not cidr_entries:
+            return {}
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except (ValueError, TypeError):
+            return {}
+        for net, config in cidr_entries:
+            if ip_obj.version != net.version:
+                continue
+            if ip_obj in net:
+                return config
+        return {}
 
     @staticmethod
     def _get_agent_ip(data, host_ip, interface):
