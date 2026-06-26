@@ -368,6 +368,7 @@ class Resolver:
         """
         agent_ip_index_config_map = self.read_config_data()
         sflow_cacti_data_map = self.read_sflow_cacti_data()
+        customer_cidr_entries = self.read_customer_cidr_data()
         new_docs = []
         ip_info_cache = {}
         try:
@@ -377,7 +378,16 @@ class Resolver:
                 src_ip = source.get('src_ip')
                 dst_ip = source.get('dst_ip')
                 ifindex = source.get('source_id_index')
+                # 双轨反查：接口模式（host_ip+ifindex）或 IP 模式（src_ip CIDR 匹配）
                 config = agent_ip_index_config_map.get(f"{host_ip}_{ifindex}", {})
+                if not config:
+                    cfg_by_ip = self._lookup_cidr(src_ip, customer_cidr_entries)
+                    if cfg_by_ip:
+                        config = cfg_by_ip
+                        config.setdefault('agent_ip', cfg_by_ip.get('egress_ip'))
+                # 兼容 ES 富化字段命名（ElkConfig 用 costumer，新表用 customer）
+                if 'costumer' not in config and 'customer' in config:
+                    config['costumer'] = config['customer']
                 agent_ip = config.get('agent_ip')
                 if not all([src_ip, dst_ip, host_ip, agent_ip]):
                     continue
