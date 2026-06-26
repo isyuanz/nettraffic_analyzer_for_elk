@@ -1,9 +1,10 @@
 import os
 import sys
 import json
+import logging
 import tempfile
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 # 本机环境未安装 ip2region.util（resolver.py 在模块顶层 import），
 # 但本测试只调用 @staticmethod，无需真实 ip2region。注入 MagicMock 桩绕过 import 错误。
@@ -44,6 +45,56 @@ class RewriteDocsDualTrackTests(unittest.TestCase):
         # 当前配置无 IPv6 条目
         entries = Resolver.read_customer_cidr_data()
         self.assertEqual(Resolver._lookup_cidr('2001:db8::1', entries), {})
+
+
+class RewriteDocsEndToEndTests(unittest.TestCase):
+    """验证 rewrite_docs 在 IP 模式下完整跑通（C1 regression test）。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.tmpdir, 'res'), exist_ok=True)
+        with open(os.path.join(self.tmpdir, 'res', 'customer_cidr.json'), 'w') as f:
+            json.dump([{
+                'node': 'N1', 'customer': 'C1',
+                'cidr': '203.0.113.0/24', 'egress_ip': '120.92.10.5',
+            }], f)
+        # 空列表占位，避免 read_config_data / read_sflow_cacti_data 抛错
+        with open(os.path.join(self.tmpdir, 'res', 'config_data.json'), 'w') as f:
+            json.dump([], f)
+        with open(os.path.join(self.tmpdir, 'res', 'sflow_cacti_data.json'), 'w') as f:
+            json.dump([], f)
+        self.cwd = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+
+    def test_ip_mode_doc_enriched_without_keyerror(self):
+        """IP 模式命中的文档应正常进入 new_docs，customer 字段被回写。"""
+        doc = {
+            '_id': 'abc123',
+            '_index': 'sflow-2026.06.26',
+            '_source': {
+                '@timestamp': '2026-06-26T08:00:00.000Z',
+                'host': {'ip': '10.255.0.1'},
+                'src_ip': '203.0.113.5',
+                'dst_ip': '8.8.8.8',
+                'source_id_index': '999',
+                'frame_length_times_sampling_rate': 1500,
+            },
+        }
+        with patch.object(Resolver, 'resolve_country_info', return_value={}), \
+                patch.object(Resolver, 'rewrite_ipinfo', side_effect=lambda ip, info: {
+                    'isp': '中国移动', 'province': '广东', 'country': '中国',
+                    'country_code': 'CN', 'city': '深圳',
+                }):
+            resolver = Resolver.__new__(Resolver)
+            resolver.logger = logging.getLogger('test')
+            new_docs = resolver.rewrite_docs([doc])
+        # C1 修复前: KeyError 被第 461 行 except 吞掉，new_docs 为 []
+        self.assertEqual(len(new_docs), 1, 'IP 模式文档应进入 new_docs，不应被 KeyError 吞掉')
+        self.assertEqual(new_docs[0]['_source']['customer'], 'C1')
+        self.assertEqual(new_docs[0]['_source']['node'], 'N1')
 
 
 if __name__ == '__main__':

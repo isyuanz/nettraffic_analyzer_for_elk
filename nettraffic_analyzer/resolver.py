@@ -385,6 +385,10 @@ class Resolver:
                     if cfg_by_ip:
                         config = cfg_by_ip
                         config.setdefault('agent_ip', cfg_by_ip.get('egress_ip'))
+                        # 兜底 ElkConfig 特有字段：IP 模式下没有这些字段
+                        config.setdefault('relation_cacti_graph_id', 0)
+                        config.setdefault('switch', '')
+                        config.setdefault('flow_direction', '')
                 # 兼容 ES 富化字段命名（ElkConfig 用 costumer，新表用 customer）
                 if 'costumer' not in config and 'customer' in config:
                     config['costumer'] = config['customer']
