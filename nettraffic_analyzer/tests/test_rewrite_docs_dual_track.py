@@ -96,6 +96,86 @@ class RewriteDocsEndToEndTests(unittest.TestCase):
         self.assertEqual(new_docs[0]['_source']['customer'], 'C1')
         self.assertEqual(new_docs[0]['_source']['node'], 'N1')
 
+    def test_cidr_match_takes_priority_over_port_config(self):
+        """同一文档同时命中端口配置和 CIDR 配置时，应以 CIDR 识别结果为准。"""
+        with open(os.path.join(self.tmpdir, 'res', 'config_data.json'), 'w') as f:
+            json.dump([{
+                'host_ip': '10.255.0.1',
+                'interface': '999',
+                'agent_ip': '198.51.100.10',
+                'node': 'PORT_NODE',
+                'costumer': 'PORT_CUSTOMER',
+                'switch': 'Gi1/0/1',
+                'flow_direction': '出站',
+                'relation_cacti_graph_id': 0,
+            }], f)
+        doc = {
+            '_id': 'abc124',
+            '_index': 'sflow-2026.06.26',
+            '_source': {
+                '@timestamp': '2026-06-26T08:00:00.000Z',
+                'host': {'ip': '10.255.0.1'},
+                'src_ip': '203.0.113.5',
+                'dst_ip': '8.8.8.8',
+                'source_id_index': '999',
+                'frame_length_times_sampling_rate': 1500,
+            },
+        }
+        with patch.object(Resolver, 'resolve_country_info', return_value={}), \
+                patch.object(Resolver, 'rewrite_ipinfo', side_effect=lambda ip, info: {
+                    'isp': '中国移动', 'province': '广东', 'country': '中国',
+                    'country_code': 'CN', 'city': '深圳',
+                }):
+            resolver = Resolver.__new__(Resolver)
+            resolver.logger = logging.getLogger('test')
+            new_docs = resolver.rewrite_docs([doc])
+
+        self.assertEqual(len(new_docs), 1)
+        self.assertEqual(new_docs[0]['_source']['customer'], 'C1')
+        self.assertEqual(new_docs[0]['_source']['node'], 'N1')
+        self.assertEqual(new_docs[0]['_source']['sw_interface'], '')
+
+    def test_empty_cidr_config_skips_cidr_lookup(self):
+        """未配置 CIDR 条目时，不应对每条文档执行 CIDR 查询。"""
+        with open(os.path.join(self.tmpdir, 'res', 'customer_cidr.json'), 'w') as f:
+            json.dump([], f)
+        with open(os.path.join(self.tmpdir, 'res', 'config_data.json'), 'w') as f:
+            json.dump([{
+                'host_ip': '10.255.0.1',
+                'interface': '999',
+                'agent_ip': '198.51.100.10',
+                'node': 'PORT_NODE',
+                'costumer': 'PORT_CUSTOMER',
+                'switch': 'Gi1/0/1',
+                'flow_direction': '出站',
+                'relation_cacti_graph_id': 0,
+            }], f)
+        doc = {
+            '_id': 'abc125',
+            '_index': 'sflow-2026.06.26',
+            '_source': {
+                '@timestamp': '2026-06-26T08:00:00.000Z',
+                'host': {'ip': '10.255.0.1'},
+                'src_ip': '203.0.113.5',
+                'dst_ip': '8.8.8.8',
+                'source_id_index': '999',
+                'frame_length_times_sampling_rate': 1500,
+            },
+        }
+        with patch.object(Resolver, '_lookup_cidr', wraps=Resolver._lookup_cidr) as lookup, \
+                patch.object(Resolver, 'resolve_country_info', return_value={}), \
+                patch.object(Resolver, 'rewrite_ipinfo', side_effect=lambda ip, info: {
+                    'isp': '中国移动', 'province': '广东', 'country': '中国',
+                    'country_code': 'CN', 'city': '深圳',
+                }):
+            resolver = Resolver.__new__(Resolver)
+            resolver.logger = logging.getLogger('test')
+            new_docs = resolver.rewrite_docs([doc])
+
+        self.assertEqual(len(new_docs), 1)
+        self.assertEqual(new_docs[0]['_source']['customer'], 'PORT_CUSTOMER')
+        lookup.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

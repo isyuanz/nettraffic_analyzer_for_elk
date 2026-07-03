@@ -378,17 +378,19 @@ class Resolver:
                 src_ip = source.get('src_ip')
                 dst_ip = source.get('dst_ip')
                 ifindex = source.get('source_id_index')
-                # 双轨反查：接口模式（host_ip+ifindex）或 IP 模式（src_ip CIDR 匹配）
-                config = agent_ip_index_config_map.get(f"{host_ip}_{ifindex}", {})
-                if not config:
+                # 双轨反查：有 CIDR 配置且文档有 src_ip 时，CIDR 优先；未命中再回退端口。
+                config = {}
+                if customer_cidr_entries and src_ip:
                     cfg_by_ip = self._lookup_cidr(src_ip, customer_cidr_entries)
                     if cfg_by_ip:
-                        config = cfg_by_ip
+                        config = dict(cfg_by_ip)
                         config.setdefault('agent_ip', cfg_by_ip.get('egress_ip'))
                         # 兜底 ElkConfig 特有字段：IP 模式下没有这些字段
                         config.setdefault('relation_cacti_graph_id', 0)
                         config.setdefault('switch', '')
                         config.setdefault('flow_direction', '')
+                if not config:
+                    config = agent_ip_index_config_map.get(f"{host_ip}_{ifindex}", {})
                 # 兼容 ES 富化字段命名（ElkConfig 用 costumer，新表用 customer）
                 if 'costumer' not in config and 'customer' in config:
                     config['costumer'] = config['customer']
